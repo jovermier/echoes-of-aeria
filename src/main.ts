@@ -477,7 +477,7 @@ type Direction =
   | 'down-left'
   | 'down-right';
 
-type GameState = 'title' | 'playing' | 'paused' | 'inventory' | 'gameover' | 'dungeon';
+type GameState = 'title' | 'playing' | 'paused' | 'inventory' | 'gameover' | 'dungeon' | 'building' | 'dialogue';
 type WorldState = 'dayrealm' | 'eclipse';
 
 type DungeonType =
@@ -555,7 +555,88 @@ const GameState = {
   INVENTORY: 'inventory' as const,
   GAMEOVER: 'gameover' as const,
   DUNGEON: 'dungeon' as const,
+  BUILDING: 'building' as const,
+  DIALOGUE: 'dialogue' as const,
 } as const;
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  objectives: QuestObjective[];
+  completed: boolean;
+  active: boolean;
+}
+
+interface BuildingInterior {
+  id: string;
+  name: string;
+  type: 'house' | 'castle' | 'temple' | 'shop' | 'inn';
+  width: number;
+  height: number;
+  tiles: TileType[][];
+  npcs?: NPC[];
+  items?: Item[];
+  entranceX: number;
+  entranceY: number;
+}
+
+interface NPC {
+  id: string;
+  name: string;
+  position: Vector2;
+  sprite: Sprite;
+  dialogue: string[];
+  questId?: string;
+  shopItems?: ShopItem[];
+}
+
+interface ShopItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+interface QuestObjective {
+  id: string;
+  description: string;
+  type: 'collect' | 'reach' | 'defeat' | 'talk' | 'enter' | 'solve';
+  target?: string;
+  amount?: number;
+  currentAmount?: number;
+  completed: boolean;
+}
+
+interface EclipsePuzzle {
+  id: string;
+  position: Vector2;
+  type: 'mirror_switch' | 'shadow_stone' | 'eclipse_door' | 'time_crystal';
+  requiredMode: 'dayrealm' | 'eclipse' | 'both';
+  isActivated: boolean;
+  questId?: string;
+  linkedPuzzleId?: string;
+}
+
+interface EclipseReward {
+  id: string;
+  position: Vector2;
+  item: string;
+  onlyInEclipse: boolean;
+  puzzleRequired?: string;
+  revealed: boolean;
+}
+
+interface ProgressionGate {
+  id: string;
+  position: Vector2;
+  type: 'eclipse_barrier' | 'crystal_lock' | 'ancient_seal' | 'time_gate';
+  requiredItems: string[];
+  requiredPuzzles: string[];
+  isUnlocked: boolean;
+  blocksAccess: string; // What area/content this gates
+  unlockMessage: string;
+}
 
 const TileType = {
   GRASS: 0 as const,
@@ -2143,6 +2224,28 @@ class ZeldaGame {
   private currentDungeon: DungeonData | null = null;
   private playerInventory: Set<string> = new Set();
 
+  // Quest system
+  private quests: Quest[] = [];
+  private currentObjective: string = '';
+
+  // Building interior system
+  private buildingInteriors: Map<string, BuildingInterior> = new Map();
+  private currentBuilding: BuildingInterior | null = null;
+
+  // Dialogue system
+  private currentNPC: NPC | null = null;
+  private currentDialogue: string[] = [];
+  private dialogueIndex: number = 0;
+
+  // Eclipse mechanics
+  private eclipsePuzzles: EclipsePuzzle[] = [];
+  private eclipseRewards: EclipseReward[] = [];
+  private eclipseProgress: number = 0;
+
+  // Progression gates
+  private progressionGates: ProgressionGate[] = [];
+  private gateUnlockMessages: string[] = [];
+
   constructor() {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d')!;
@@ -2152,6 +2255,9 @@ class ZeldaGame {
     this.world = new World();
     this.initDungeonSystem();
     this.initPlayer();
+    this.initQuestSystem();
+    this.initBuildingInteriors();
+    this.initEclipseMechanics();
     this.spawnEnemies();
     this.spawnItems();
     this.setupEventListeners();
@@ -2241,6 +2347,414 @@ class ZeldaGame {
       this.player.position.x + this.player.size.x / 2,
       this.player.position.y + this.player.size.y / 2,
     );
+  }
+
+  initQuestSystem() {
+    // Initialize the main storyline quests based on the GDD
+    this.quests = [
+      {
+        id: 'tutorial',
+        title: 'Awakening in Hearthmere',
+        description: 'Learn the basics and begin your quest to save Aeria.',
+        objectives: [
+          {
+            id: 'explore_village',
+            description: 'Explore the village of Hearthmere',
+            type: 'reach',
+            target: 'hearthmere_center',
+            completed: false
+          },
+          {
+            id: 'collect_items',
+            description: 'Collect some rupees and hearts',
+            type: 'collect',
+            target: 'rupee',
+            amount: 10,
+            currentAmount: this.player.rupees,
+            completed: false
+          }
+        ],
+        completed: false,
+        active: true
+      },
+      {
+        id: 'first_shard',
+        title: 'The First Aether Shard',
+        description: 'Bandits have raided Hearthmere. Track them to discover the first Aether Shard.',
+        objectives: [
+          {
+            id: 'defeat_enemies',
+            description: 'Defeat 5 enemies to prove your strength',
+            type: 'defeat',
+            target: 'enemy',
+            amount: 5,
+            currentAmount: 0,
+            completed: false
+          },
+          {
+            id: 'find_whisperwood',
+            description: 'Explore the Whisperwood to the northwest',
+            type: 'reach',
+            target: 'whisperwood',
+            completed: false
+          }
+        ],
+        completed: false,
+        active: false
+      },
+      {
+        id: 'eclipse_discovery',
+        title: 'Echoes of the Eclipse',
+        description: 'Learn to use the Aether Mirror to traverse between the Dayrealm and Eclipse.',
+        objectives: [
+          {
+            id: 'use_eclipse',
+            description: 'Toggle to Eclipse mode 3 times (Press E)',
+            type: 'collect',
+            target: 'eclipse_toggle',
+            amount: 3,
+            currentAmount: 0,
+            completed: false
+          },
+          {
+            id: 'explore_eclipse',
+            description: 'Discover what changes in Eclipse mode',
+            type: 'reach',
+            target: 'eclipse_area',
+            completed: false
+          }
+        ],
+        completed: false,
+        active: false
+      }
+    ];
+
+    // Set initial objective
+    this.updateCurrentObjective();
+  }
+
+  updateCurrentObjective() {
+    const activeQuest = this.quests.find(q => q.active && !q.completed);
+    if (activeQuest) {
+      const uncompletedObjective = activeQuest.objectives.find(obj => !obj.completed);
+      if (uncompletedObjective) {
+        this.currentObjective = uncompletedObjective.description;
+      } else {
+        this.currentObjective = 'Quest completed! Check for new objectives.';
+        this.completeQuest(activeQuest.id);
+      }
+    } else {
+      this.currentObjective = 'Explore the world and seek your destiny...';
+    }
+  }
+
+  updateQuestProgress(type: string, target: string, amount: number = 1) {
+    const activeQuest = this.quests.find(q => q.active && !q.completed);
+    if (!activeQuest) return;
+
+    activeQuest.objectives.forEach(objective => {
+      if (!objective.completed && objective.type === type && objective.target === target) {
+        if (objective.amount) {
+          objective.currentAmount = (objective.currentAmount || 0) + amount;
+          if (objective.currentAmount >= objective.amount) {
+            objective.completed = true;
+            console.log(`Quest objective completed: ${objective.description}`);
+          }
+        } else {
+          objective.completed = true;
+          console.log(`Quest objective completed: ${objective.description}`);
+        }
+      }
+    });
+
+    this.updateCurrentObjective();
+  }
+
+  completeQuest(questId: string) {
+    const quest = this.quests.find(q => q.id === questId);
+    if (quest) {
+      quest.completed = true;
+      quest.active = false;
+      console.log(`Quest completed: ${quest.title}`);
+      
+      // Activate next quest
+      this.activateNextQuest();
+    }
+  }
+
+  activateNextQuest() {
+    const nextQuest = this.quests.find(q => !q.active && !q.completed);
+    if (nextQuest) {
+      nextQuest.active = true;
+      console.log(`New quest activated: ${nextQuest.title}`);
+      this.updateCurrentObjective();
+    }
+  }
+
+  initBuildingInteriors() {
+    // Create sample building interiors based on the GDD
+    
+    // Simple house interior
+    this.buildingInteriors.set('house_1', {
+      id: 'house_1',
+      name: 'Cozy Cottage',
+      type: 'house',
+      width: 10,
+      height: 8,
+      entranceX: 5,
+      entranceY: 7,
+      tiles: this.createHouseInterior(10, 8),
+      npcs: [
+        {
+          id: 'villager_1',
+          name: 'Elder Martha',
+          position: { x: 3 * 32, y: 3 * 32 },
+          sprite: { x: 0, y: 0, width: 24, height: 24, color: '#8B4513' },
+          dialogue: [
+            "Welcome to Hearthmere, young traveler!",
+            "Dark times have fallen upon our land...",
+            "The Heart of Aeria has been shattered.",
+            "Only the Aether Shards can restore balance."
+          ]
+        }
+      ]
+    });
+
+    // Temple interior
+    this.buildingInteriors.set('temple_1', {
+      id: 'temple_1',
+      name: 'Sacred Temple',
+      type: 'temple',
+      width: 12,
+      height: 10,
+      entranceX: 6,
+      entranceY: 9,
+      tiles: this.createTempleInterior(12, 10),
+      npcs: [
+        {
+          id: 'keeper_elowen',
+          name: 'Keeper Elowen',
+          position: { x: 6 * 32, y: 4 * 32 },
+          sprite: { x: 0, y: 0, width: 24, height: 24, color: '#228B22' },
+          dialogue: [
+            "Greetings, chosen one.",
+            "The Eclipse threatens to consume all.",
+            "Use the Aether Mirror wisely - it reveals hidden truths.",
+            "Press E to toggle between Dayrealm and Eclipse."
+          ]
+        }
+      ]
+    });
+
+    // Shop interior
+    this.buildingInteriors.set('shop_1', {
+      id: 'shop_1',
+      name: 'General Store',
+      type: 'shop',
+      width: 8,
+      height: 6,
+      entranceX: 4,
+      entranceY: 5,
+      tiles: this.createShopInterior(8, 6),
+      npcs: [
+        {
+          id: 'merchant_bob',
+          name: 'Merchant Bob',
+          position: { x: 4 * 32, y: 2 * 32 },
+          sprite: { x: 0, y: 0, width: 24, height: 24, color: '#DAA520' },
+          dialogue: [
+            "Welcome to my shop!",
+            "I've got the finest wares in Hearthmere.",
+            "Hearts for 20 rupees, keys for 30!",
+            "Come back when you have more coin!"
+          ],
+          shopItems: [
+            { id: 'heart', name: 'Heart Container', price: 20, description: 'Restores 1 heart' },
+            { id: 'key', name: 'Skeleton Key', price: 30, description: 'Opens locked doors' }
+          ]
+        }
+      ]
+    });
+  }
+
+  createHouseInterior(width: number, height: number): TileType[][] {
+    const tiles: TileType[][] = [];
+    
+    for (let y = 0; y < height; y++) {
+      tiles[y] = [];
+      for (let x = 0; x < width; x++) {
+        if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+          tiles[y][x] = TileType.HOUSE_WALL;
+        } else {
+          tiles[y][x] = TileType.FLOOR;
+        }
+      }
+    }
+    
+    // Add entrance door
+    tiles[height - 1][Math.floor(width / 2)] = TileType.HOUSE_DOOR;
+    
+    return tiles;
+  }
+
+  createTempleInterior(width: number, height: number): TileType[][] {
+    const tiles: TileType[][] = [];
+    
+    for (let y = 0; y < height; y++) {
+      tiles[y] = [];
+      for (let x = 0; x < width; x++) {
+        if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+          tiles[y][x] = TileType.CASTLE_WALL; // Use castle walls for temple
+        } else {
+          tiles[y][x] = TileType.FLOOR;
+        }
+      }
+    }
+    
+    // Add entrance door
+    tiles[height - 1][Math.floor(width / 2)] = TileType.CASTLE_DOOR;
+    
+    // Add altar in center
+    tiles[3][Math.floor(width / 2)] = TileType.TEMPLE;
+    
+    return tiles;
+  }
+
+  createShopInterior(width: number, height: number): TileType[][] {
+    const tiles: TileType[][] = [];
+    
+    for (let y = 0; y < height; y++) {
+      tiles[y] = [];
+      for (let x = 0; x < width; x++) {
+        if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+          tiles[y][x] = TileType.HOUSE_WALL;
+        } else {
+          tiles[y][x] = TileType.FLOOR;
+        }
+      }
+    }
+    
+    // Add entrance door
+    tiles[height - 1][Math.floor(width / 2)] = TileType.HOUSE_DOOR;
+    
+    return tiles;
+  }
+
+  initEclipseMechanics() {
+    // Initialize Eclipse puzzles and interactive elements
+    this.eclipsePuzzles = [
+      // Mirror Switch in Whisperwood - reveals hidden path
+      {
+        id: 'mirror_switch_1',
+        position: { x: 18 * this.world.tileSize, y: 25 * this.world.tileSize },
+        type: 'mirror_switch',
+        requiredMode: 'eclipse',
+        isActivated: false,
+        questId: 'eclipse_discovery'
+      },
+      // Shadow Stone in Central Grasslands - unlocks Eclipse door
+      {
+        id: 'shadow_stone_1', 
+        position: { x: 40 * this.world.tileSize, y: 30 * this.world.tileSize },
+        type: 'shadow_stone',
+        requiredMode: 'eclipse',
+        isActivated: false,
+        linkedPuzzleId: 'eclipse_door_1'
+      },
+      // Eclipse Door in Central area - requires shadow stone activation
+      {
+        id: 'eclipse_door_1',
+        position: { x: 45 * this.world.tileSize, y: 25 * this.world.tileSize },
+        type: 'eclipse_door',
+        requiredMode: 'both',
+        isActivated: false,
+        questId: 'eclipse_discovery'
+      },
+      // Time Crystal in Frostfell - switches must be used in specific order
+      {
+        id: 'time_crystal_1',
+        position: { x: 25 * this.world.tileSize, y: 8 * this.world.tileSize },
+        type: 'time_crystal',
+        requiredMode: 'dayrealm',
+        isActivated: false
+      }
+    ];
+
+    // Initialize Eclipse rewards - items only accessible through Eclipse mechanics
+    this.eclipseRewards = [
+      {
+        id: 'eclipse_key_1',
+        position: { x: 19 * this.world.tileSize, y: 26 * this.world.tileSize },
+        item: 'eclipse_key',
+        onlyInEclipse: true,
+        puzzleRequired: 'mirror_switch_1',
+        revealed: false
+      },
+      {
+        id: 'shadow_crystal',
+        position: { x: 46 * this.world.tileSize, y: 24 * this.world.tileSize },
+        item: 'shadow_crystal',
+        onlyInEclipse: true,
+        puzzleRequired: 'eclipse_door_1',
+        revealed: false
+      },
+      {
+        id: 'time_shard',
+        position: { x: 25 * this.world.tileSize, y: 7 * this.world.tileSize },
+        item: 'time_shard',
+        onlyInEclipse: false,
+        puzzleRequired: 'time_crystal_1',
+        revealed: false
+      }
+    ];
+
+    // Initialize progression gates - barriers that require multiple puzzle completions
+    this.progressionGates = [
+      // Eclipse Barrier - requires eclipse key and shadow crystal
+      {
+        id: 'eclipse_barrier_1',
+        position: { x: 35 * this.world.tileSize, y: 15 * this.world.tileSize },
+        type: 'eclipse_barrier',
+        requiredItems: ['eclipse_key', 'shadow_crystal'],
+        requiredPuzzles: ['mirror_switch_1', 'eclipse_door_1'],
+        isUnlocked: false,
+        blocksAccess: 'Northern Ancient Ruins',
+        unlockMessage: 'The Eclipse Barrier dissolves, revealing ancient ruins!'
+      },
+      // Crystal Lock - blocks access to powerful dungeon
+      {
+        id: 'crystal_lock_1',
+        position: { x: 55 * this.world.tileSize, y: 45 * this.world.tileSize },
+        type: 'crystal_lock',
+        requiredItems: ['shadow_crystal', 'time_shard'],
+        requiredPuzzles: ['shadow_stone_1', 'time_crystal_1'],
+        isUnlocked: false,
+        blocksAccess: 'Crystal Sanctum Dungeon',
+        unlockMessage: 'The Crystal Lock opens! The Sanctum awaits...'
+      },
+      // Ancient Seal - requires all Eclipse mechanics mastery
+      {
+        id: 'ancient_seal_1',
+        position: { x: 30 * this.world.tileSize, y: 5 * this.world.tileSize },
+        type: 'ancient_seal',
+        requiredItems: ['eclipse_key', 'shadow_crystal', 'time_shard'],
+        requiredPuzzles: ['mirror_switch_1', 'shadow_stone_1', 'eclipse_door_1', 'time_crystal_1'],
+        isUnlocked: false,
+        blocksAccess: 'Final Eclipse Chamber',
+        unlockMessage: 'The Ancient Seal breaks! The Eclipse Chamber is revealed!'
+      },
+      // Time Gate - allows fast travel between areas
+      {
+        id: 'time_gate_1',
+        position: { x: 20 * this.world.tileSize, y: 40 * this.world.tileSize },
+        type: 'time_gate',
+        requiredItems: ['time_shard'],
+        requiredPuzzles: ['time_crystal_1'],
+        isUnlocked: false,
+        blocksAccess: 'Teleportation Network',
+        unlockMessage: 'Time Gate activated! Instant travel unlocked!'
+      }
+    ];
   }
 
   spawnEnemies() {
@@ -2484,6 +2998,9 @@ class ZeldaGame {
         if (this.gameState === GameState.DUNGEON) {
           // Exit dungeon
           this.exitDungeon();
+        } else if (this.gameState === GameState.BUILDING) {
+          // Exit building
+          this.exitBuilding();
         } else {
           const newState =
             this.gameState === GameState.PLAYING ? GameState.PAUSED : GameState.PLAYING;
@@ -2510,6 +3027,12 @@ class ZeldaGame {
         this.world.toggleWorldState();
         this.audioManager.playSound('collect'); // Play mirror sound effect
         console.log(`World state changed to: ${this.world.worldState}`);
+        this.updateQuestProgress('collect', 'eclipse_toggle', 1);
+      }
+      
+      // Dialogue progression
+      if (e.key === 'Enter' && this.gameState === GameState.DIALOGUE) {
+        this.nextDialogueLine();
       }
     });
 
@@ -2578,7 +3101,7 @@ class ZeldaGame {
   }
 
   updatePlayer(deltaTime: number) {
-    if (this.gameState !== GameState.PLAYING && this.gameState !== GameState.DUNGEON) return;
+    if (this.gameState !== GameState.PLAYING && this.gameState !== GameState.DUNGEON && this.gameState !== GameState.BUILDING) return;
 
     // Handle flashing timer
     if (this.player.isFlashing) {
@@ -2671,6 +3194,14 @@ class ZeldaGame {
         this.player.position.x = newX;
       }
       if (this.isDungeonPassable(this.player.position.x, newY)) {
+        this.player.position.y = newY;
+      }
+    } else if (this.gameState === GameState.BUILDING && this.currentBuilding) {
+      // Building collision detection
+      if (this.isBuildingPassable(newX, this.player.position.y)) {
+        this.player.position.x = newX;
+      }
+      if (this.isBuildingPassable(this.player.position.x, newY)) {
         this.player.position.y = newY;
       }
     } else {
@@ -2814,6 +3345,979 @@ class ZeldaGame {
     // Return player to safe position in world
     this.player.position = this.findSafeStartingPosition();
     this.camera.setTarget(this.player.position.x, this.player.position.y);
+  }
+
+  checkBuildingEntrance() {
+    if (this.gameState !== GameState.PLAYING) return;
+
+    // Check if player is standing on a door tile
+    const playerTileX = Math.floor((this.player.position.x + this.player.size.x / 2) / this.world.tileSize);
+    const playerTileY = Math.floor((this.player.position.y + this.player.size.y / 2) / this.world.tileSize);
+    
+    const tileType = this.world.getTileAt(playerTileX * this.world.tileSize, playerTileY * this.world.tileSize);
+    
+    if (tileType === TileType.HOUSE_DOOR || tileType === TileType.CASTLE_DOOR) {
+      // Show interaction prompt
+      this.drawBuildingInteractionPrompt();
+      
+      // Check for Enter key to enter building
+      if (this.keys['enter']) {
+        this.enterBuilding(playerTileX, playerTileY, tileType);
+      }
+    }
+  }
+
+  checkNPCInteraction() {
+    if (this.gameState !== GameState.BUILDING || !this.currentBuilding || !this.currentBuilding.npcs) return;
+
+    const playerCenter = {
+      x: this.player.position.x + this.player.size.x / 2,
+      y: this.player.position.y + this.player.size.y / 2
+    };
+
+    // Check if player is near any NPC
+    for (const npc of this.currentBuilding.npcs) {
+      const distance = Math.sqrt(
+        Math.pow(playerCenter.x - npc.position.x, 2) +
+        Math.pow(playerCenter.y - npc.position.y, 2)
+      );
+
+      if (distance < 40) { // Within interaction range
+        // Show interaction prompt
+        this.drawNPCInteractionPrompt(npc.name);
+        
+        // Check for Enter key to start dialogue
+        if (this.keys['enter']) {
+          this.startDialogue(npc);
+        }
+        return; // Only interact with one NPC at a time
+      }
+    }
+  }
+
+  startDialogue(npc: NPC) {
+    this.currentNPC = npc;
+    this.currentDialogue = [...npc.dialogue];
+    this.dialogueIndex = 0;
+    this.gameState = GameState.DIALOGUE;
+    
+    // Update quest progress for talking to NPCs
+    if (npc.questId) {
+      this.updateQuestProgress('talk', npc.id, 1);
+    }
+  }
+
+  nextDialogueLine() {
+    if (this.dialogueIndex < this.currentDialogue.length - 1) {
+      this.dialogueIndex++;
+    } else {
+      this.endDialogue();
+    }
+  }
+
+  endDialogue() {
+    this.currentNPC = null;
+    this.currentDialogue = [];
+    this.dialogueIndex = 0;
+    this.gameState = GameState.BUILDING;
+  }
+
+  checkEclipsePuzzles() {
+    if (this.gameState !== GameState.PLAYING) return;
+
+    const playerCenter = {
+      x: this.player.position.x + this.player.size.x / 2,
+      y: this.player.position.y + this.player.size.y / 2
+    };
+
+    // Check if player is near any Eclipse puzzle
+    for (const puzzle of this.eclipsePuzzles) {
+      const distance = Math.sqrt(
+        Math.pow(playerCenter.x - puzzle.position.x, 2) +
+        Math.pow(playerCenter.y - puzzle.position.y, 2)
+      );
+
+      if (distance < 50) { // Within interaction range
+        // Check if puzzle can be interacted with in current world state
+        const canInteract = puzzle.requiredMode === 'both' || 
+                           puzzle.requiredMode === this.world.worldState;
+        
+        if (canInteract && !puzzle.isActivated) {
+          this.drawEclipsePuzzlePrompt(puzzle);
+          
+          // Check for Enter key to activate puzzle
+          if (this.keys['enter']) {
+            this.activateEclipsePuzzle(puzzle);
+          }
+        } else if (!canInteract) {
+          this.drawEclipsePuzzleHint(puzzle);
+        }
+        return; // Only interact with one puzzle at a time
+      }
+    }
+  }
+
+  activateEclipsePuzzle(puzzle: EclipsePuzzle) {
+    puzzle.isActivated = true;
+    this.audioManager.playSound('collect'); // Use existing sound
+    
+    // Handle puzzle-specific effects
+    switch (puzzle.type) {
+      case 'mirror_switch':
+        this.handleMirrorSwitch(puzzle);
+        break;
+      case 'shadow_stone':
+        this.handleShadowStone(puzzle);
+        break;
+      case 'eclipse_door':
+        this.handleEclipseDoor(puzzle);
+        break;
+      case 'time_crystal':
+        this.handleTimeCrystal(puzzle);
+        break;
+    }
+    
+    // Update quest progress
+    if (puzzle.questId) {
+      this.updateQuestProgress('solve', puzzle.id, 1);
+    }
+    
+    this.eclipseProgress++;
+  }
+
+  handleMirrorSwitch(puzzle: EclipsePuzzle) {
+    // Reveal hidden Eclipse reward
+    const reward = this.eclipseRewards.find(r => r.puzzleRequired === puzzle.id);
+    if (reward) {
+      reward.revealed = true;
+      console.log(`Mirror switch activated! Eclipse key revealed.`);
+    }
+  }
+
+  handleShadowStone(puzzle: EclipsePuzzle) {
+    // Activate linked Eclipse door
+    if (puzzle.linkedPuzzleId) {
+      const linkedPuzzle = this.eclipsePuzzles.find(p => p.id === puzzle.linkedPuzzleId);
+      if (linkedPuzzle) {
+        linkedPuzzle.isActivated = true;
+        console.log(`Shadow stone activated! Eclipse door unlocked.`);
+      }
+    }
+  }
+
+  handleEclipseDoor(puzzle: EclipsePuzzle) {
+    // Reveal shadow crystal reward
+    const reward = this.eclipseRewards.find(r => r.puzzleRequired === puzzle.id);
+    if (reward) {
+      reward.revealed = true;
+      console.log(`Eclipse door opened! Shadow crystal revealed.`);
+    }
+  }
+
+  handleTimeCrystal(puzzle: EclipsePuzzle) {
+    // Reveal time shard (works in both modes)
+    const reward = this.eclipseRewards.find(r => r.puzzleRequired === puzzle.id);
+    if (reward) {
+      reward.revealed = true;
+      console.log(`Time crystal activated! Time shard revealed.`);
+    }
+  }
+
+  checkProgressionGates() {
+    if (this.gameState !== GameState.PLAYING) return;
+
+    const playerCenter = {
+      x: this.player.position.x + this.player.size.x / 2,
+      y: this.player.position.y + this.player.size.y / 2
+    };
+
+    // Check if player is near any progression gate
+    for (const gate of this.progressionGates) {
+      const distance = Math.sqrt(
+        Math.pow(playerCenter.x - gate.position.x, 2) +
+        Math.pow(playerCenter.y - gate.position.y, 2)
+      );
+
+      if (distance < 50) { // Within interaction range
+        if (!gate.isUnlocked) {
+          // Check if requirements are met
+          const canUnlock = this.checkGateRequirements(gate);
+          
+          if (canUnlock) {
+            this.drawProgressionGatePrompt(gate, true);
+            
+            // Check for Enter key to unlock gate
+            if (this.keys['enter']) {
+              this.unlockProgressionGate(gate);
+            }
+          } else {
+            this.drawProgressionGatePrompt(gate, false);
+          }
+        } else {
+          // Gate is unlocked, show access prompt
+          this.drawUnlockedGatePrompt(gate);
+          
+          if (this.keys['enter']) {
+            this.useProgressionGate(gate);
+          }
+        }
+        return; // Only interact with one gate at a time
+      }
+    }
+  }
+
+  checkGateRequirements(gate: ProgressionGate): boolean {
+    // Check required items
+    for (const item of gate.requiredItems) {
+      if (!this.playerInventory.has(item)) {
+        return false;
+      }
+    }
+    
+    // Check required puzzles
+    for (const puzzleId of gate.requiredPuzzles) {
+      const puzzle = this.eclipsePuzzles.find(p => p.id === puzzleId);
+      if (!puzzle || !puzzle.isActivated) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  unlockProgressionGate(gate: ProgressionGate) {
+    gate.isUnlocked = true;
+    this.audioManager.playSound('player_attack'); // Use dramatic sound
+    
+    // Add unlock message to display
+    this.gateUnlockMessages.push(gate.unlockMessage);
+    
+    // Remove unlock message after 3 seconds
+    setTimeout(() => {
+      const index = this.gateUnlockMessages.indexOf(gate.unlockMessage);
+      if (index > -1) {
+        this.gateUnlockMessages.splice(index, 1);
+      }
+    }, 3000);
+    
+    // Update quest progress
+    this.updateQuestProgress('solve', gate.id, 1);
+    
+    console.log(`Progression gate unlocked: ${gate.blocksAccess}`);
+  }
+
+  useProgressionGate(gate: ProgressionGate) {
+    // Handle different gate types
+    switch (gate.type) {
+      case 'eclipse_barrier':
+        this.handleEclipseBarrier(gate);
+        break;
+      case 'crystal_lock':
+        this.handleCrystalLock(gate);
+        break;
+      case 'ancient_seal':
+        this.handleAncientSeal(gate);
+        break;
+      case 'time_gate':
+        this.handleTimeGate(gate);
+        break;
+    }
+  }
+
+  handleEclipseBarrier(_gate: ProgressionGate) {
+    // Teleport to northern ruins area
+    this.player.position.x = 35 * this.world.tileSize;
+    this.player.position.y = 10 * this.world.tileSize;
+    this.camera.setTarget(this.player.position.x, this.player.position.y);
+    console.log('Transported to Ancient Ruins');
+  }
+
+  handleCrystalLock(_gate: ProgressionGate) {
+    // Open access to special dungeon
+    console.log('Crystal Sanctum dungeon now accessible');
+    // Could add special dungeon entrance or modify world state
+  }
+
+  handleAncientSeal(_gate: ProgressionGate) {
+    // Final area access
+    this.player.position.x = 30 * this.world.tileSize;
+    this.player.position.y = 2 * this.world.tileSize;
+    this.camera.setTarget(this.player.position.x, this.player.position.y);
+    console.log('Entered the Eclipse Chamber');
+  }
+
+  handleTimeGate(_gate: ProgressionGate) {
+    // Fast travel system
+    console.log('Time Gate travel activated - teleportation available');
+    // Could implement a travel menu or instant travel to key locations
+  }
+
+  enterBuilding(_tileX: number, _tileY: number, doorType: TileType) {
+    // Determine which building to enter based on location and door type
+    let buildingId = 'house_1'; // Default
+    
+    if (doorType === TileType.CASTLE_DOOR) {
+      buildingId = 'temple_1';
+    } else if (doorType === TileType.HOUSE_DOOR) {
+      // Could check specific coordinates to determine which house
+      // For now, alternate between house and shop
+      buildingId = Math.random() < 0.5 ? 'house_1' : 'shop_1';
+    }
+    
+    const building = this.buildingInteriors.get(buildingId);
+    if (building) {
+      console.log(`Entering ${building.name}`);
+      this.gameState = GameState.BUILDING;
+      this.currentBuilding = building;
+      
+      // Position player at building entrance
+      this.player.position = {
+        x: building.entranceX * this.world.tileSize,
+        y: building.entranceY * this.world.tileSize
+      };
+      
+      this.camera.setTarget(this.player.position.x, this.player.position.y);
+      this.audioManager.playSound('collect'); // Entry sound
+      
+      // Update quest progress for entering buildings
+      this.updateQuestProgress('enter', 'building', 1);
+    }
+  }
+
+  exitBuilding() {
+    if (!this.currentBuilding) return;
+    
+    console.log(`Exiting ${this.currentBuilding.name}`);
+    this.gameState = GameState.PLAYING;
+    this.currentBuilding = null;
+    
+    // Return player to safe position in world
+    this.player.position = this.findSafeStartingPosition();
+    this.camera.setTarget(this.player.position.x, this.player.position.y);
+  }
+
+  isBuildingPassable(x: number, y: number): boolean {
+    if (!this.currentBuilding) return false;
+    
+    const tileSize = this.world.tileSize;
+    const tileX = Math.floor(x / tileSize);
+    const tileY = Math.floor(y / tileSize);
+    
+    // Check bounds
+    if (tileX < 0 || tileX >= this.currentBuilding.width || 
+        tileY < 0 || tileY >= this.currentBuilding.height) {
+      return false;
+    }
+    
+    const tile = this.currentBuilding.tiles[tileY][tileX];
+    
+    // Building exit check - if player walks into door while inside, exit
+    if ((tile === TileType.HOUSE_DOOR || tile === TileType.CASTLE_DOOR) && 
+        tileY === this.currentBuilding.height - 1) {
+      // Exit building after a short delay to prevent immediate re-entry
+      setTimeout(() => this.exitBuilding(), 100);
+      return true;
+    }
+    
+    return (
+      tile === TileType.FLOOR ||
+      tile === TileType.HOUSE_DOOR ||
+      tile === TileType.CASTLE_DOOR
+    );
+  }
+
+  drawBuildingInteractionPrompt() {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width / 2 - 100, canvas.height - 100, 200, 60);
+    
+    ctx.fillStyle = '#FFFF00';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Press ENTER to enter`, canvas.width / 2, canvas.height - 70);
+    ctx.fillText('building', canvas.width / 2, canvas.height - 50);
+    ctx.textAlign = 'left';
+  }
+
+  drawNPCInteractionPrompt(npcName: string) {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width / 2 - 120, canvas.height - 100, 240, 60);
+    
+    ctx.fillStyle = '#FFFF00';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Press ENTER to talk to`, canvas.width / 2, canvas.height - 70);
+    ctx.fillText(npcName, canvas.width / 2, canvas.height - 50);
+    ctx.textAlign = 'left';
+  }
+
+  drawEclipsePuzzlePrompt(puzzle: EclipsePuzzle) {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width / 2 - 140, canvas.height - 100, 280, 60);
+    
+    ctx.fillStyle = '#9370DB'; // Purple for Eclipse elements
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Press ENTER to activate`, canvas.width / 2, canvas.height - 70);
+    ctx.fillText(this.getPuzzleDisplayName(puzzle.type), canvas.width / 2, canvas.height - 50);
+    ctx.textAlign = 'left';
+  }
+
+  drawEclipsePuzzleHint(puzzle: EclipsePuzzle) {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width / 2 - 150, canvas.height - 100, 300, 60);
+    
+    ctx.fillStyle = '#FF6347'; // Orange-red for hints
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    const requiredMode = puzzle.requiredMode === 'eclipse' ? 'Eclipse' : 'Dayrealm';
+    ctx.fillText(`Requires ${requiredMode} mode`, canvas.width / 2, canvas.height - 70);
+    ctx.fillText(`Use Aether Mirror (E) to switch`, canvas.width / 2, canvas.height - 50);
+    ctx.textAlign = 'left';
+  }
+
+  getPuzzleDisplayName(type: string): string {
+    switch (type) {
+      case 'mirror_switch': return 'Mirror Switch';
+      case 'shadow_stone': return 'Shadow Stone';
+      case 'eclipse_door': return 'Eclipse Door';
+      case 'time_crystal': return 'Time Crystal';
+      default: return 'Unknown Puzzle';
+    }
+  }
+
+  drawEclipseElements() {
+    if (this.gameState !== GameState.PLAYING) return;
+    
+    // Draw Eclipse puzzles
+    this.eclipsePuzzles.forEach(puzzle => {
+      if (this.world.isTileRevealed(puzzle.position.x, puzzle.position.y)) {
+        this.drawEclipsePuzzle(
+          puzzle,
+          Math.round(puzzle.position.x - this.camera.position.x),
+          Math.round(puzzle.position.y - this.camera.position.y)
+        );
+      }
+    });
+    
+    // Draw Eclipse rewards (only if revealed and in correct mode)
+    this.eclipseRewards.forEach(reward => {
+      if (reward.revealed && this.world.isTileRevealed(reward.position.x, reward.position.y)) {
+        // Check if reward should be visible in current world state
+        const shouldShow = !reward.onlyInEclipse || this.world.worldState === 'eclipse';
+        if (shouldShow) {
+          this.drawEclipseReward(
+            reward,
+            Math.round(reward.position.x - this.camera.position.x),
+            Math.round(reward.position.y - this.camera.position.y)
+          );
+        }
+      }
+    });
+    
+    // Draw progression gates
+    this.progressionGates.forEach(gate => {
+      if (this.world.isTileRevealed(gate.position.x, gate.position.y)) {
+        this.drawProgressionGate(
+          gate,
+          Math.round(gate.position.x - this.camera.position.x),
+          Math.round(gate.position.y - this.camera.position.y)
+        );
+      }
+    });
+  }
+
+  drawEclipsePuzzle(puzzle: EclipsePuzzle, x: number, y: number) {
+    const ctx = this.ctx;
+    const size = 24;
+    
+    // Base color depends on activation state
+    const baseColor = puzzle.isActivated ? '#4169E1' : '#9370DB';
+    const glowColor = puzzle.isActivated ? '#00FFFF' : '#DDA0DD';
+    
+    // Draw puzzle base
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x, y, size, size);
+    
+    // Draw puzzle-specific design
+    switch (puzzle.type) {
+      case 'mirror_switch':
+        this.drawMirrorSwitch(ctx, x, y, size, puzzle.isActivated);
+        break;
+      case 'shadow_stone':
+        this.drawShadowStone(ctx, x, y, size, puzzle.isActivated);
+        break;
+      case 'eclipse_door':
+        this.drawEclipseDoor(ctx, x, y, size, puzzle.isActivated);
+        break;
+      case 'time_crystal':
+        this.drawTimeCrystal(ctx, x, y, size, puzzle.isActivated);
+        break;
+    }
+    
+    // Draw glow effect if activated
+    if (puzzle.isActivated) {
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 1, y - 1, size + 2, size + 2);
+    }
+  }
+
+  drawMirrorSwitch(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, activated: boolean) {
+    // Mirror surface
+    ctx.fillStyle = activated ? '#E0E0E0' : '#C0C0C0';
+    ctx.fillRect(x + 4, y + 4, size - 8, size - 8);
+    
+    // Mirror frame
+    ctx.strokeStyle = activated ? '#FFD700' : '#8B7355';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+    
+    // Activation runes
+    if (activated) {
+      ctx.fillStyle = '#00FFFF';
+      ctx.fillRect(x + size/2 - 1, y + 2, 2, 4);
+      ctx.fillRect(x + 2, y + size/2 - 1, 4, 2);
+    }
+  }
+
+  drawShadowStone(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, activated: boolean) {
+    // Stone base
+    ctx.fillStyle = activated ? '#2F2F2F' : '#696969';
+    ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+    
+    // Shadow energy
+    if (activated) {
+      ctx.fillStyle = '#9370DB';
+      for (let i = 0; i < 3; i++) {
+        const offset = i * 3;
+        ctx.fillRect(x + 4 + offset, y + 6, 2, size - 12);
+      }
+    } else {
+      // Dormant state
+      ctx.fillStyle = '#4B0082';
+      ctx.fillRect(x + size/2 - 1, y + size/2 - 1, 2, 2);
+    }
+  }
+
+  drawEclipseDoor(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, activated: boolean) {
+    // Door frame
+    ctx.fillStyle = activated ? '#32CD32' : '#8B4513';
+    ctx.fillRect(x, y, size, size);
+    
+    // Door opening
+    if (activated) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(x + 4, y + 4, size - 8, size - 8);
+      
+      // Portal effect
+      ctx.fillStyle = '#9370DB';
+      ctx.fillRect(x + 6, y + 6, size - 12, size - 12);
+    } else {
+      // Sealed door
+      ctx.fillStyle = '#2F2F2F';
+      ctx.fillRect(x + 3, y + 3, size - 6, size - 6);
+    }
+  }
+
+  drawTimeCrystal(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, activated: boolean) {
+    // Crystal base
+    ctx.fillStyle = activated ? '#40E0D0' : '#4682B4';
+    
+    // Draw crystal shape (diamond)
+    ctx.beginPath();
+    ctx.moveTo(x + size/2, y + 2);
+    ctx.lineTo(x + size - 2, y + size/2);
+    ctx.lineTo(x + size/2, y + size - 2);
+    ctx.lineTo(x + 2, y + size/2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Time energy
+    if (activated) {
+      ctx.fillStyle = '#FFFF00';
+      ctx.fillRect(x + size/2 - 1, y + 4, 2, size - 8);
+      ctx.fillRect(x + 4, y + size/2 - 1, size - 8, 2);
+    }
+  }
+
+  drawEclipseReward(reward: EclipseReward, x: number, y: number) {
+    const ctx = this.ctx;
+    const size = 16;
+    
+    // Reward base with glow
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(x, y, size, size);
+    
+    // Glow effect
+    ctx.strokeStyle = '#FFFF00';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 1, y - 1, size + 2, size + 2);
+    
+    // Draw item-specific icon
+    switch (reward.item) {
+      case 'eclipse_key':
+        this.drawEclipseKey(ctx, x, y, size);
+        break;
+      case 'shadow_crystal':
+        this.drawShadowCrystal(ctx, x, y, size);
+        break;
+      case 'time_shard':
+        this.drawTimeShard(ctx, x, y, size);
+        break;
+    }
+  }
+
+  drawEclipseKey(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+    // Key shaft
+    ctx.fillStyle = '#4B0082';
+    ctx.fillRect(x + 2, y + size/2 - 1, size - 6, 2);
+    
+    // Key head
+    ctx.strokeStyle = '#4B0082';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + 4, y + size/2, 3, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Key teeth
+    ctx.fillRect(x + size - 4, y + size/2 + 1, 2, 2);
+  }
+
+  drawShadowCrystal(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+    // Crystal
+    ctx.fillStyle = '#9370DB';
+    ctx.beginPath();
+    ctx.moveTo(x + size/2, y + 2);
+    ctx.lineTo(x + size - 2, y + size - 2);
+    ctx.lineTo(x + 2, y + size - 2);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Shadow effect
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(x + 4, y + size - 4, size - 4, 2);
+  }
+
+  drawTimeShard(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+    // Shard
+    ctx.fillStyle = '#40E0D0';
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y + 2);
+    ctx.lineTo(x + size - 2, y + 4);
+    ctx.lineTo(x + size - 4, y + size - 2);
+    ctx.lineTo(x + 4, y + size - 4);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Time sparkle
+    ctx.fillStyle = '#FFFF00';
+    ctx.fillRect(x + size/2, y + size/2, 1, 1);
+  }
+
+  drawProgressionGate(gate: ProgressionGate, x: number, y: number) {
+    const ctx = this.ctx;
+    const size = 32;
+    
+    // Base color depends on unlock state
+    const baseColor = gate.isUnlocked ? '#00FF00' : '#FF0000';
+    const glowColor = gate.isUnlocked ? '#90EE90' : '#FFB6C1';
+    
+    // Draw gate base
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x, y, size, size);
+    
+    // Draw gate-specific design
+    switch (gate.type) {
+      case 'eclipse_barrier':
+        this.drawEclipseBarrierGate(ctx, x, y, size, gate.isUnlocked);
+        break;
+      case 'crystal_lock':
+        this.drawCrystalLockGate(ctx, x, y, size, gate.isUnlocked);
+        break;
+      case 'ancient_seal':
+        this.drawAncientSealGate(ctx, x, y, size, gate.isUnlocked);
+        break;
+      case 'time_gate':
+        this.drawTimeGateGate(ctx, x, y, size, gate.isUnlocked);
+        break;
+    }
+    
+    // Draw glow effect
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 1, y - 1, size + 2, size + 2);
+  }
+
+  drawEclipseBarrierGate(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, unlocked: boolean) {
+    // Barrier pattern
+    if (unlocked) {
+      ctx.fillStyle = '#2F2F2F';
+      ctx.fillRect(x + 4, y + 4, size - 8, size - 8);
+      // Eclipse symbol
+      ctx.fillStyle = '#9370DB';
+      ctx.beginPath();
+      ctx.arc(x + size/2, y + size/2, 6, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Blocked state
+      ctx.fillStyle = '#FF4500';
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(x + 2 + i * 8, y + 2, 4, size - 4);
+      }
+    }
+  }
+
+  drawCrystalLockGate(ctx: CanvasRenderingContext2D, x: number, y: number, _size: number, unlocked: boolean) {
+    // Crystal formation
+    ctx.fillStyle = unlocked ? '#40E0D0' : '#8B4513';
+    
+    // Draw crystal cluster
+    for (let i = 0; i < 4; i++) {
+      const offsetX = (i % 2) * 12;
+      const offsetY = Math.floor(i / 2) * 12;
+      ctx.beginPath();
+      ctx.moveTo(x + 6 + offsetX, y + 4 + offsetY);
+      ctx.lineTo(x + 12 + offsetX, y + 8 + offsetY);
+      ctx.lineTo(x + 8 + offsetX, y + 12 + offsetY);
+      ctx.lineTo(x + 2 + offsetX, y + 8 + offsetY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  drawAncientSealGate(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, unlocked: boolean) {
+    // Ancient runes
+    ctx.fillStyle = unlocked ? '#FFD700' : '#696969';
+    
+    // Draw runic pattern
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const radius = 8;
+      const runX = x + size/2 + Math.cos(angle) * radius;
+      const runY = y + size/2 + Math.sin(angle) * radius;
+      ctx.fillRect(runX - 1, runY - 1, 2, 2);
+    }
+    
+    // Center seal
+    ctx.fillStyle = unlocked ? '#00FFFF' : '#2F2F2F';
+    ctx.beginPath();
+    ctx.arc(x + size/2, y + size/2, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawTimeGateGate(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, unlocked: boolean) {
+    // Portal ring
+    ctx.strokeStyle = unlocked ? '#40E0D0' : '#4682B4';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + size/2, y + size/2, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Inner energy
+    if (unlocked) {
+      ctx.fillStyle = '#E0FFFF';
+      ctx.beginPath();
+      ctx.arc(x + size/2, y + size/2, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  drawProgressionGatePrompt(gate: ProgressionGate, canUnlock: boolean) {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    const width = 350;
+    const height = canUnlock ? 80 : 120;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.fillRect(canvas.width / 2 - width/2, canvas.height - height - 20, width, height);
+    
+    ctx.strokeStyle = canUnlock ? '#00FF00' : '#FF6347';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(canvas.width / 2 - width/2, canvas.height - height - 20, width, height);
+    
+    ctx.fillStyle = canUnlock ? '#00FF00' : '#FF6347';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    
+    if (canUnlock) {
+      ctx.fillText(`Press ENTER to unlock`, canvas.width / 2, canvas.height - height + 5);
+      ctx.fillText(this.getGateDisplayName(gate.type), canvas.width / 2, canvas.height - height + 25);
+      ctx.fillText(`Access: ${gate.blocksAccess}`, canvas.width / 2, canvas.height - height + 45);
+    } else {
+      ctx.fillText(this.getGateDisplayName(gate.type), canvas.width / 2, canvas.height - height + 5);
+      ctx.fillText(`Requires:`, canvas.width / 2, canvas.height - height + 25);
+      
+      // Show requirements
+      ctx.font = '12px Arial';
+      let reqY = canvas.height - height + 45;
+      gate.requiredItems.forEach(item => {
+        const hasItem = this.playerInventory.has(item);
+        ctx.fillStyle = hasItem ? '#90EE90' : '#FF6347';
+        ctx.fillText(`• ${item}`, canvas.width / 2, reqY);
+        reqY += 15;
+      });
+    }
+    
+    ctx.textAlign = 'left';
+  }
+
+  drawUnlockedGatePrompt(gate: ProgressionGate) {
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width / 2 - 150, canvas.height - 100, 300, 60);
+    
+    ctx.fillStyle = '#00FF00';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Press ENTER to access`, canvas.width / 2, canvas.height - 70);
+    ctx.fillText(gate.blocksAccess, canvas.width / 2, canvas.height - 50);
+    ctx.textAlign = 'left';
+  }
+
+  getGateDisplayName(type: string): string {
+    switch (type) {
+      case 'eclipse_barrier': return 'Eclipse Barrier';
+      case 'crystal_lock': return 'Crystal Lock';
+      case 'ancient_seal': return 'Ancient Seal';
+      case 'time_gate': return 'Time Gate';
+      default: return 'Unknown Gate';
+    }
+  }
+
+  drawDialogue() {
+    if (!this.currentNPC || this.currentDialogue.length === 0) return;
+    
+    const canvas = this.canvas;
+    const ctx = this.ctx;
+    
+    // Draw dialogue box
+    const boxHeight = 120;
+    const margin = 20;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.fillRect(margin, canvas.height - boxHeight - margin, canvas.width - margin * 2, boxHeight);
+    
+    ctx.strokeStyle = '#FFFF00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(margin, canvas.height - boxHeight - margin, canvas.width - margin * 2, boxHeight);
+    
+    // Draw NPC name
+    ctx.fillStyle = '#FFFF00';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(this.currentNPC.name, margin + 15, canvas.height - boxHeight - margin + 25);
+    
+    // Draw dialogue text
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '16px Arial';
+    const currentLine = this.currentDialogue[this.dialogueIndex];
+    
+    // Word wrap the dialogue text
+    const maxWidth = canvas.width - margin * 2 - 30;
+    const words = currentLine.split(' ');
+    let line = '';
+    let y = canvas.height - boxHeight - margin + 55;
+    
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && i > 0) {
+        ctx.fillText(line, margin + 15, y);
+        line = words[i] + ' ';
+        y += 20;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, margin + 15, y);
+    
+    // Draw continue prompt
+    ctx.fillStyle = '#AAAAAA';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'right';
+    if (this.dialogueIndex < this.currentDialogue.length - 1) {
+      ctx.fillText('Press ENTER to continue...', canvas.width - margin - 15, canvas.height - margin - 10);
+    } else {
+      ctx.fillText('Press ENTER to end conversation', canvas.width - margin - 15, canvas.height - margin - 10);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  drawBuilding() {
+    if (!this.currentBuilding) return;
+    
+    const tileSize = this.world.tileSize;
+    const ctx = this.ctx;
+    
+    // Draw building tiles
+    for (let y = 0; y < this.currentBuilding.height; y++) {
+      for (let x = 0; x < this.currentBuilding.width; x++) {
+        const tileType = this.currentBuilding.tiles[y][x];
+        const screenX = x * tileSize - this.camera.position.x;
+        const screenY = y * tileSize - this.camera.position.y;
+        
+        // Only draw tiles that are visible on screen
+        if (screenX + tileSize >= 0 && screenX < this.canvas.width &&
+            screenY + tileSize >= 0 && screenY < this.canvas.height) {
+          
+          this.world.drawDetailedTile(ctx, tileType, screenX, screenY);
+        }
+      }
+    }
+    
+    // Draw NPCs if any
+    if (this.currentBuilding.npcs) {
+      this.currentBuilding.npcs.forEach(npc => {
+        const screenX = Math.round(npc.position.x - this.camera.position.x);
+        const screenY = Math.round(npc.position.y - this.camera.position.y);
+        
+        // Draw NPC sprite
+        this.ctx.fillStyle = npc.sprite.color;
+        this.ctx.fillRect(screenX, screenY, npc.sprite.width, npc.sprite.height);
+        
+        // Draw NPC name above
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = '10px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(npc.name, screenX + npc.sprite.width / 2, screenY - 5);
+        this.ctx.textAlign = 'left';
+      });
+    }
+    
+    // Draw building UI
+    this.drawBuildingUI();
+  }
+
+  drawBuildingUI() {
+    if (!this.currentBuilding) return;
+    
+    const ctx = this.ctx;
+    
+    // Draw building name and instructions
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(10, 10, 300, 50);
+    
+    ctx.fillStyle = '#FFFF00';
+    ctx.font = '18px Arial';
+    ctx.fillText(this.currentBuilding.name, 20, 30);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '12px Arial';
+    ctx.fillText('Press ESC to exit building', 20, 50);
   }
 
   drawInteractionPrompt(dungeonName: string) {
@@ -3103,6 +4607,7 @@ class ZeldaGame {
           this.enemies.splice(i, 1);
           this.player.rupees += 5;
           console.log(`Enemy defeated! Gained 5 rupees. Total: ${this.player.rupees}`);
+          this.updateQuestProgress('defeat', 'enemy', 1);
         }
       }
 
@@ -3154,6 +4659,7 @@ class ZeldaGame {
           case 'rupee':
             this.player.rupees += item.value;
             console.log(`Collected rupee! Total: ${this.player.rupees}`);
+            this.updateQuestProgress('collect', 'rupee', item.value);
             break;
           case 'heart':
             // Regular heart pickup heals 1 heart (2 health points since each heart = 2 points)
@@ -3314,6 +4820,8 @@ class ZeldaGame {
     // Draw appropriate world based on game state
     if (this.gameState === GameState.DUNGEON && this.currentDungeon) {
       this.drawDungeon();
+    } else if (this.gameState === GameState.BUILDING && this.currentBuilding) {
+      this.drawBuilding();
     } else {
       this.world.draw(this.ctx, this.camera);
     }
@@ -3356,7 +4864,15 @@ class ZeldaGame {
       }
     });
 
+    // Draw Eclipse puzzles and rewards
+    this.drawEclipseElements();
+
     this.drawUI();
+    
+    // Draw dialogue if in dialogue state
+    if (this.gameState === GameState.DIALOGUE) {
+      this.drawDialogue();
+    }
   }
 
   drawUI() {
@@ -3370,6 +4886,9 @@ class ZeldaGame {
     // Draw currency and keys below hearts
     this.drawCurrencyAndKeys();
 
+    // Draw quest objective
+    this.drawQuestObjective();
+
     // Game title in center of header
     this.ctx.fillStyle = '#FFD700'; // Same golden yellow as title screen
     this.ctx.font = 'bold 20px Arial';
@@ -3379,6 +4898,9 @@ class ZeldaGame {
 
     // Top-right directions
     this.drawDirections();
+
+    // Draw gate unlock messages
+    this.drawGateUnlockMessages();
 
     if (this.gameState === GameState.TITLE) {
       this.drawTitleScreen();
@@ -3438,6 +4960,10 @@ class ZeldaGame {
     this.updateEnemies(deltaTime);
     this.updateItems();
     this.checkDungeonEntrance(); // Check for dungeon interactions
+    this.checkBuildingEntrance(); // Check for building entry
+    this.checkNPCInteraction(); // Check for NPC interactions
+    this.checkEclipsePuzzles(); // Check for Eclipse puzzle interactions
+    this.checkProgressionGates(); // Check for progression gate interactions
     this.world.updateTransition(deltaTime * 1000); // Convert to ms
 
     this.draw();
@@ -3608,12 +5134,72 @@ class ZeldaGame {
     this.ctx.fillText(`${this.player.keys}`, keyX + 20, startY + 10);
   }
 
+  drawQuestObjective() {
+    if (!this.currentObjective) return;
+
+    // Quest objective background (bottom of screen)
+    const objHeight = 50;
+    const objY = this.canvas.height - objHeight;
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.fillRect(0, objY, this.canvas.width, objHeight);
+
+    // Quest objective text
+    this.ctx.fillStyle = '#FFFF99'; // Light yellow
+    this.ctx.font = '14px Arial';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText('OBJECTIVE:', 10, objY + 20);
+    
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = '12px Arial';
+    this.ctx.fillText(this.currentObjective, 10, objY + 35);
+
+    // Show current quest progress if applicable
+    const activeQuest = this.quests.find(q => q.active && !q.completed);
+    if (activeQuest) {
+      const uncompletedObjective = activeQuest.objectives.find(obj => !obj.completed);
+      if (uncompletedObjective && uncompletedObjective.amount) {
+        const progress = `(${uncompletedObjective.currentAmount || 0}/${uncompletedObjective.amount})`;
+        this.ctx.fillStyle = '#AAAAAA';
+        this.ctx.fillText(progress, this.canvas.width - 100, objY + 35);
+      }
+    }
+
+    this.ctx.textAlign = 'left'; // Reset alignment
+  }
+
   drawDirections() {
     this.ctx.fillStyle = '#FFF';
     this.ctx.font = '12px Arial';
     this.ctx.textAlign = 'right';
     this.ctx.fillText('ESC - Pause', this.canvas.width - 10, 20);
     this.ctx.textAlign = 'left'; // Reset text alignment
+  }
+
+  drawGateUnlockMessages() {
+    if (this.gateUnlockMessages.length === 0) return;
+    
+    const ctx = this.ctx;
+    let y = 200;
+    
+    this.gateUnlockMessages.forEach(message => {
+      // Message background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(this.canvas.width / 2 - 200, y - 20, 400, 40);
+      
+      // Message border
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.canvas.width / 2 - 200, y - 20, 400, 40);
+      
+      // Message text
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(message, this.canvas.width / 2, y);
+      ctx.textAlign = 'left';
+      
+      y += 50;
+    });
   }
 
   drawPauseControls() {

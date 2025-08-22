@@ -6,7 +6,6 @@ import './style.css'
 // === CORE TYPES ===
 type Direction = 'up' | 'down' | 'left' | 'right';
 type GameState = 'playing' | 'paused' | 'dialogue' | 'inventory' | 'menu';
-type WorldState = 'dayrealm' | 'eclipse';
 
 const TILE_SIZE = 16; // 16x16 tiles as specified in GDD
 const VIEWPORT_WIDTH = 50;  // tiles visible horizontally
@@ -30,30 +29,25 @@ const GameState = {
   MENU: 'menu' as const
 } as const;
 
-const WorldState = {
-  DAYREALM: 'dayrealm' as const,
-  ECLIPSE: 'eclipse' as const
-} as const;
-
 // Tile types matching the regions from the map
-enum TileType {
-  GRASS = 0,
-  WATER = 1,
-  FOREST = 2,
-  MOUNTAIN = 3,
-  DESERT = 4,
-  SNOW = 5,
-  MARSH = 6,
-  VOLCANIC = 7,
-  WALL = 8,
-  DOOR = 9,
-  BRIDGE = 10,
-  PATH = 11,
-  HOUSE = 12,
-  SHRINE = 13,
-  CHEST = 14,
-  FLOWER = 15
-}
+const TileType = {
+  GRASS: 0 as const,
+  WATER: 1 as const,
+  FOREST: 2 as const,
+  MOUNTAIN: 3 as const,
+  DESERT: 4 as const,
+  SNOW: 5 as const,
+  MARSH: 6 as const,
+  VOLCANIC: 7 as const,
+  WALL: 8 as const,
+  DOOR: 9 as const,
+  BRIDGE: 10 as const,
+  PATH: 11 as const,
+  HOUSE: 12 as const,
+  SHRINE: 13 as const,
+  CHEST: 14 as const,
+  FLOWER: 15 as const
+} as const;
 
 // === INTERFACES ===
 interface Vector2 {
@@ -105,21 +99,6 @@ interface PlayerInventory {
   rumor_cards: number;
 }
 
-interface Enemy extends Entity {
-  health: number;
-  maxHealth: number;
-  attackDamage: number;
-  attackRange: number;
-  detectionRange: number;
-  enemyType: string;
-  aiState: 'idle' | 'patrol' | 'chase' | 'attack' | 'retreat';
-  animationFrame: number;
-  animationTimer: number;
-  attacking: boolean;
-  attackTimer: number;
-  lastAttackTime: number;
-}
-
 interface NPC extends Entity {
   name: string;
   dialogue: string[];
@@ -132,7 +111,7 @@ interface NPC extends Entity {
 interface Region {
   name: string;
   bounds: { x1: number, y1: number, x2: number, y2: number };
-  primaryTile: TileType;
+  primaryTile: typeof TileType[keyof typeof TileType];
   enemies: string[];
   music?: string;
 }
@@ -203,11 +182,9 @@ class EchoesOfAeria {
   private ctx: CanvasRenderingContext2D;
   private keys: { [key: string]: boolean } = {};
   private gameState: GameState = GameState.PLAYING;
-  private worldState: WorldState = WorldState.DAYREALM;
   
   private world: number[][];
   private player!: Player;
-  private enemies: Enemy[] = [];
   private npcs: NPC[] = [];
   private camera: { x: number, y: number } = { x: 0, y: 0 };
   
@@ -542,7 +519,7 @@ class EchoesOfAeria {
         const screenX = x * TILE_SIZE - this.camera.x;
         const screenY = y * TILE_SIZE - this.camera.y;
         
-        this.drawTile(this.world[y][x], screenX, screenY);
+        this.drawTile(this.world[y][x] as typeof TileType[keyof typeof TileType], screenX, screenY);
       }
     }
 
@@ -566,7 +543,7 @@ class EchoesOfAeria {
     this.drawUI();
   }
 
-  drawTile(tileType: TileType, x: number, y: number) {
+  drawTile(tileType: typeof TileType[keyof typeof TileType], x: number, y: number) {
     switch (tileType) {
       case TileType.GRASS:
         this.ctx.fillStyle = '#4CAF50';
