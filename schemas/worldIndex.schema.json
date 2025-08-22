@@ -1,0 +1,203 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "worldIndex.schema.json",
+  "title": "World Index Schema",
+  "description": "Central registry for all maps, portals, and world connections in Echoes of Aeria",
+  "type": "object",
+  "required": ["version", "maps", "realms"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility"
+    },
+    "maps": {
+      "type": "array",
+      "description": "Registry of all game maps",
+      "items": {
+        "$ref": "#/definitions/MapEntry"
+      }
+    },
+    "realms": {
+      "type": "object",
+      "description": "Realm-specific configuration",
+      "properties": {
+        "day": { "$ref": "#/definitions/RealmConfig" },
+        "eclipse": { "$ref": "#/definitions/RealmConfig" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "MapEntry": {
+      "type": "object",
+      "required": ["id", "file", "realm", "bounds"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Unique map identifier in snake_case"
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[a-z_]+\\.tmx$",
+          "description": "Tiled map file name"
+        },
+        "realm": {
+          "enum": ["day", "eclipse"],
+          "description": "Which realm this map belongs to"
+        },
+        "bounds": {
+          "$ref": "#/definitions/Rectangle",
+          "description": "Map boundaries in pixels"
+        },
+        "portals": {
+          "type": "array",
+          "description": "Portal definitions for this map",
+          "items": { "$ref": "#/definitions/Portal" }
+        },
+        "adjacent": {
+          "type": "array",
+          "description": "IDs of adjacent maps for preloading",
+          "items": { "type": "string" }
+        },
+        "preloadRadius": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Radius in pixels for asset preloading"
+        },
+        "musicTrack": {
+          "type": "string",
+          "description": "Audio bank ID for this map's background music"
+        },
+        "ambientTrack": {
+          "type": "string", 
+          "description": "Audio bank ID for ambient sounds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Portal": {
+      "type": "object",
+      "required": ["id", "trigger", "target"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Unique portal identifier"
+        },
+        "trigger": {
+          "$ref": "#/definitions/Rectangle",
+          "description": "Trigger area for portal activation"
+        },
+        "target": {
+          "$ref": "#/definitions/PortalTarget",
+          "description": "Destination map and spawn point"
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Requirements to use this portal",
+          "items": { "$ref": "#/definitions/Condition" }
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this portal works in both directions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PortalTarget": {
+      "type": "object",
+      "required": ["map", "spawn"],
+      "properties": {
+        "map": {
+          "type": "string",
+          "description": "Target map ID"
+        },
+        "spawn": {
+          "type": "string",
+          "description": "Spawn point ID in target map"
+        },
+        "transition": {
+          "enum": ["fade", "slide", "instant", "realm_switch"],
+          "default": "fade",
+          "description": "Visual transition type"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Condition": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["item", "flag", "quest", "level"],
+          "description": "Type of condition to check"
+        },
+        "key": {
+          "type": "string",
+          "description": "Item ID, flag name, quest ID, etc."
+        },
+        "value": {
+          "description": "Required value (varies by condition type)"
+        },
+        "operator": {
+          "enum": ["equals", "greater", "less", "contains"],
+          "default": "equals",
+          "description": "Comparison operator"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RealmConfig": {
+      "type": "object",
+      "required": ["tint", "ambientVolume"],
+      "properties": {
+        "tint": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Color tint for this realm (hex)"
+        },
+        "ambientVolume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Base ambient audio volume"
+        },
+        "musicVolume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.6,
+          "description": "Base music volume for this realm"
+        },
+        "particleEffects": {
+          "type": "array",
+          "description": "Realm-specific particle effects",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Rectangle": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "Vector2": {
+      "type": "object", 
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

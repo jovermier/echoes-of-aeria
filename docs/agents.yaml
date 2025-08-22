@@ -1,0 +1,409 @@
+# Echoes of Aeria - Claude Code Agent Configuration
+# Production-ready agent roster with specialized responsibilities and clear boundaries
+
+version: "1.0.0"
+project: "echoes-of-aeria"
+updated: "2025-01-22"
+
+# Core orchestration and standards
+orchestration:
+  orchestrator:
+    role: "Project coordination, epic breakdown, task assignment, and milestone tracking"
+    file: ".claude/agents/orchestrator.md"
+    responsibilities:
+      - "Epic → Task Breakdown and dependency management"
+      - "Agent coordination and conflict resolution"
+      - "Milestone tracking and release management"
+      - "Architecture decision facilitation"
+    inputs:
+      - "Product requirements and feature requests"
+      - "Technical debt reports and blockers"
+      - "Cross-system integration needs"
+    outputs:
+      - "/docs/milestones.md - Release targets and feature gates"
+      - "/docs/dependencies.yaml - Cross-system dependency graph"
+      - "/docs/task-assignments.md - Current work allocation"
+    tools:
+      - "Project Kanban board with agent assignments"
+      - "ADR (Architecture Decision Record) process"
+      - "Automated dependency tracking via code analysis"
+
+  spec_librarian:
+    role: "Schema management, data contracts, and cross-system standards enforcement"
+    file: ".claude/agents/spec-librarian.md"
+    responsibilities:
+      - "JSON Schema definition and maintenance"
+      - "Cross-system interface specification"
+      - "Standards enforcement and validation tools"
+      - "Data migration strategy management"
+    allowed_paths:
+      - "/schemas/**/*.json - Schema definitions"
+      - "/docs/standards/ - Project conventions"
+      - "/tools/validate-*.ts - Validation utilities"
+    outputs:
+      - "/schemas/save.schema.json - Player save file structure"
+      - "/schemas/worldIndex.schema.json - World map registry"
+      - "/schemas/dialogue.schema.json - Conversation trees"
+      - "/schemas/audioBank.schema.json - Audio asset registry"
+    validation_tools:
+      - "Automated schema validation in CI/CD"
+      - "Cross-system contract validation"
+      - "Data migration verification"
+
+# Architecture and core systems
+architecture:
+  game_architect:
+    role: "ECS architecture, Phaser+React integration, and performance optimization"
+    file: ".claude/agents/game-architect.md"
+    responsibilities:
+      - "Entity-Component-System (ECS) architecture design"
+      - "Phaser 3 + React integration patterns"
+      - "Performance budgets and optimization strategies"
+      - "System integration and data flow design"
+    allowed_paths:
+      - "/src/game/systems/**/*.ts - Core game systems"
+      - "/src/game/components/**/*.ts - ECS component definitions"
+      - "/src/game/entities/**/*.ts - Entity factories"
+      - "/docs/architecture/ - Technical documentation"
+    performance_targets:
+      - "60fps stable gameplay on target hardware"
+      - "Memory usage <512MB total application"
+      - "Asset loading <3s initial, <500ms transitions"
+    integration_points:
+      - "All specialist agents for system interfaces"
+      - "Performance validation for all implementations"
+
+# Runtime world and map systems
+world_systems:
+  map_streaming_engineer:
+    role: "Runtime world management, map streaming, and portal systems"
+    file: ".claude/agents/map-streaming-engineer.md"
+    responsibilities:
+      - "Map loading/unloading with memory management"
+      - "Portal detection and seamless transitions"
+      - "Realm switching (Eclipse ↔ Dayrealm) mechanics"
+      - "Chunk-based loading and entity culling"
+    allowed_paths:
+      - "/src/game/systems/mapManager.ts"
+      - "/src/game/systems/portalSystem.ts" 
+      - "/src/game/systems/worldBounds.ts"
+      - "/world/worldIndex.json - Map registry"
+    performance_targets:
+      - "Map load time <200ms for adjacent maps"
+      - "Portal transition <150ms total"
+      - "Memory <100MB for 3x3 chunk area"
+    inputs:
+      - "Tiled .tmx files with standardized layers"
+      - "worldIndex.json schema compliance"
+    integration_points:
+      - "world_builder: Map asset structure and standards"
+      - "spec_librarian: Schema validation and contracts"
+
+  tilemap_collision_validator:
+    role: "CI/CD validation of map assets and collision integrity"
+    file: ".claude/agents/tilemap-collision-validator.md"
+    responsibilities:
+      - "Automated .tmx file validation against standards"
+      - "Collision geometry completeness checking"
+      - "Portal connectivity and softlock prevention"
+      - "CI/CD integration for quality assurance"
+    allowed_paths:
+      - "/tools/tiled-validate.ts - Core validation logic"
+      - "/tools/validators/ - Specialized validators"
+      - "/.github/workflows/validate-maps.yml"
+    validation_rules:
+      - "Required layers: background, collision, portals, spawns"
+      - "Tileset property schema compliance"
+      - "Portal target existence and reachability"
+      - "No unreachable areas from spawn points"
+    ci_integration:
+      - "Validates all maps on PR creation"
+      - "Generates detailed validation reports"
+      - "Fails build on critical issues"
+
+  world_builder:
+    role: "Level design craft, Tiled workflow, and content creation"
+    file: ".claude/agents/world-builder.md"
+    responsibilities:
+      - "Level design philosophy and pacing"
+      - "Tiled editor workflow optimization"
+      - "Environmental storytelling and atmosphere"
+      - "World content creation and iteration"
+    allowed_paths:
+      - "/world/maps/*.tmx - Tiled map files"
+      - "/world/tilesets/*.tsx - Shared tileset files"
+      - "/docs/level-design/ - Design guidelines"
+    design_focus:
+      - "SNES Zelda-inspired exploration flow"
+      - "Eclipse/Dayrealm dual-world mechanics"
+      - "Environmental puzzle integration"
+    integration_points:
+      - "map_streaming_engineer: Technical map requirements"
+      - "tilemap_collision_validator: Quality standards"
+
+# Player systems and controls
+player_systems:
+  player_controller_camera:
+    role: "Input handling, player state management, and camera systems"
+    file: ".claude/agents/player-controller-camera.md"
+    responsibilities:
+      - "Responsive input handling with buffering"
+      - "Player state machine (idle, walking, attacking, etc.)"
+      - "Camera following with deadzone and effects"
+      - "Cross-platform input support (keyboard, gamepad, touch)"
+    allowed_paths:
+      - "/src/game/systems/inputSystem.ts"
+      - "/src/game/systems/playerStateMachine.ts"
+      - "/src/game/systems/cameraController.ts"
+      - "/src/game/input/ - Input handling utilities"
+    performance_targets:
+      - "Input lag <16ms from hardware to game response"
+      - "Camera updates at consistent 60fps"
+      - "State transitions with smooth animations"
+    integration_points:
+      - "combat_physics_engineer: Combat state coordination"
+      - "ui_ux_designer: Input state display and feedback"
+
+  combat_physics_engineer:
+    role: "Combat mechanics, physics simulation, and player actions"
+    file: ".claude/agents/combat-physics-engineer.md"
+    responsibilities:
+      - "Sword combat with SNES-authentic feel"
+      - "Hit detection, i-frames, and damage calculation"
+      - "8-directional movement with proper physics"
+      - "Collision detection and response optimization"
+    allowed_paths:
+      - "/src/game/systems/combat.ts"
+      - "/src/game/systems/physics.ts"
+      - "/src/game/systems/movement.ts"
+      - "/src/game/components/combat/ - Combat components"
+    combat_specs:
+      - "Sword attack: 6-8 startup, 4-6 active, 12-16 recovery frames"
+      - "I-frames: 1000ms duration with visual flicker"
+      - "Hit pause: 2-4 frames on impact"
+    performance_targets:
+      - "Combat system <2ms per frame for active combat"
+      - "Physics system <4ms per frame for full simulation"
+      - "Collision detection <1ms for 100+ entities"
+
+# Specialized gameplay systems  
+gameplay_systems:
+  ai_spawner_engineer:
+    role: "AI behavior systems, enemy spawning, and entity management"
+    file: ".claude/agents/ai-spawner-engineer.md"
+    responsibilities:
+      - "Enemy AI state machines and behavior trees"
+      - "Dynamic spawning systems with population limits"
+      - "Pathfinding and navigation mesh integration"
+      - "AI performance optimization and pooling"
+    allowed_paths:
+      - "/src/game/systems/ai/ - AI behavior systems"
+      - "/src/game/systems/spawner.ts"
+      - "/src/game/entities/enemies/ - Enemy definitions"
+    ai_behaviors:
+      - "Patrol, aggro, combat, flee state machines"
+      - "Line-of-sight and proximity detection"
+      - "Group AI coordination for encounters"
+
+  items_inventory_progression:
+    role: "Item systems, inventory management, and character progression"
+    file: ".claude/agents/items-inventory-progression.md" 
+    responsibilities:
+      - "Item effects and stat modification systems"
+      - "Inventory UI integration with game systems"
+      - "Character progression and ability unlocks"
+      - "Save/load integration for progression state"
+    allowed_paths:
+      - "/src/game/systems/inventory.ts"
+      - "/src/game/systems/progression.ts"
+      - "/src/game/data/items/ - Item definitions"
+    progression_systems:
+      - "Key item gating for world progression"
+      - "Health/magic capacity upgrades"
+      - "Equipment system with stat bonuses"
+
+  dialogue_quests:
+    role: "Dialogue trees, quest systems, and narrative integration"
+    file: ".claude/agents/dialogue-quests.md"
+    responsibilities:
+      - "Branching dialogue system implementation"
+      - "Quest state tracking and completion logic"  
+      - "Narrative flag system integration"
+      - "Localization support for text content"
+    allowed_paths:
+      - "/src/game/systems/dialogue.ts"
+      - "/src/game/systems/quests.ts"
+      - "/src/game/data/dialogue/ - Conversation data"
+      - "/src/game/data/quests/ - Quest definitions"
+
+  save_load_persistence:
+    role: "Save file management, data persistence, and integrity"
+    file: ".claude/agents/save-load-persistence.md"
+    responsibilities:
+      - "Save file format design and versioning"
+      - "Cross-session state persistence"
+      - "Data integrity and corruption prevention"
+      - "Save file migration between versions"
+    allowed_paths:
+      - "/src/game/systems/save.ts"
+      - "/src/game/systems/persistence.ts"
+      - "/src/shared/saveFormat.ts"
+    data_management:
+      - "Player state, world flags, progression data"
+      - "Settings and keybinding persistence" 
+      - "Achievement and statistics tracking"
+
+# Audio systems
+audio_systems:
+  audio_designer:
+    role: "SNES-style audio system architecture and Web Audio integration"
+    file: ".claude/agents/audio-designer.md"
+    responsibilities:
+      - "Howler.js + Web Audio API integration"
+      - "Authentic 16-bit audio characteristics"
+      - "Music ducking and dynamic mixing"
+      - "Cross-browser audio compatibility"
+    allowed_paths:
+      - "/src/game/systems/AudioManager.ts"
+      - "/src/game/utils/audioUtils.ts"
+      - "/docs/audio/ - Audio specifications"
+    audio_features:
+      - "Intro→loop music structure for seamless playback"
+      - "Pitch variation (±20-40 cents) for organic SFX"
+      - "OGG primary + M4A fallback for compatibility"
+
+  audio_wiring:
+    role: "Audio bank management, event mapping, and runtime integration"
+    file: ".claude/agents/audio-wiring.md"
+    responsibilities:
+      - "Centralized audio asset registry management"
+      - "Game event to audio ID mapping"
+      - "Contextual audio mixing and transitions"
+      - "Positional audio for 2D spatial effects"
+    allowed_paths:
+      - "/src/assets/audio/bank.json - Audio asset registry"
+      - "/src/game/systems/audioWiring.ts"
+      - "/src/game/systems/positionalAudio.ts"
+    integration_focus:
+      - "Bridge between gameplay systems and AudioManager"
+      - "Context-aware audio (combat vs exploration)"
+      - "Memory-efficient asset loading and unloading"
+
+# UI and presentation
+ui_systems:
+  ui_ux_designer:
+    role: "React UI components, game-UI bridge, and user experience"
+    file: ".claude/agents/ui-ux-designer.md"
+    responsibilities:
+      - "React overlay components for HUD and menus"
+      - "Zustand state management for UI data"
+      - "Game state to UI data bridging"
+      - "Accessibility and responsive design"
+    allowed_paths:
+      - "/src/ui/components/ - React UI components"
+      - "/src/ui/stores/ - Zustand state stores"
+      - "/src/ui/hooks/ - Custom React hooks"
+      - "/src/shared/events.ts - UI-Game event bridge"
+    ui_architecture:
+      - "React overlay on Phaser canvas"
+      - "Event-driven communication with game systems"
+      - "Consistent design system and theming"
+
+# Quality assurance and testing
+testing_systems:
+  testing_qa:
+    role: "Testing strategy, quality assurance, and automated validation"
+    file: ".claude/agents/testing-qa.md"
+    responsibilities:
+      - "Vitest unit and integration test strategy"
+      - "Playwright E2E testing for critical flows"
+      - "Performance testing and regression prevention"
+      - "CI/CD quality gates and automation"
+    allowed_paths:
+      - "/src/**/__tests__/ - Test files"
+      - "/.github/workflows/ - CI automation"
+      - "/tools/test-utils/ - Testing utilities"
+    test_pyramid:
+      - "Unit tests: Component and system logic"
+      - "Integration: Cross-system interactions"
+      - "E2E: Critical user journeys and flows"
+    quality_gates:
+      - "80% code coverage minimum"
+      - "Zero high-severity linting errors"
+      - "Performance benchmarks must pass"
+
+# Cross-cutting concerns and utilities
+utilities:
+  performance_engineer:
+    role: "Performance optimization, profiling, and resource management"
+    file: ".claude/agents/performance-engineer.md"
+    responsibilities:
+      - "Frame budget analysis and optimization"
+      - "Memory usage profiling and leak detection"
+      - "Asset loading optimization and caching"
+      - "Rendering performance and culling systems"
+    allowed_paths:
+      - "/src/game/systems/performance/ - Performance utilities"
+      - "/tools/profiling/ - Performance analysis tools"
+    targets:
+      - "60fps stable on minimum hardware spec"
+      - "Memory usage <512MB total application"
+      - "<3s initial load, <500ms area transitions"
+
+  build_tooling_ci:
+    role: "Build pipeline, tooling automation, and CI/CD management"
+    file: ".claude/agents/build-tooling-ci.md" 
+    responsibilities:
+      - "Vite build optimization and bundling"
+      - "Asset pipeline automation and optimization"
+      - "GitHub Actions workflow management"
+      - "Preview deployments and release automation"
+    allowed_paths:
+      - "/vite.config.ts, /vitest.config.ts"
+      - "/.github/workflows/ - CI/CD workflows"
+      - "/tools/ - Build and automation scripts"
+      - "/package.json - Dependencies and scripts"
+
+# Agent interaction patterns and workflows
+workflows:
+  feature_development:
+    - "orchestrator: Epic breakdown and task assignment"
+    - "spec_librarian: Schema definition and validation setup"
+    - "game_architect: System design and integration planning"
+    - "specialist_agents: Implementation in parallel"
+    - "testing_qa: Test coverage and quality validation"
+    - "orchestrator: Integration coordination and milestone tracking"
+
+  content_creation:
+    - "world_builder: Level design and content creation"
+    - "tilemap_collision_validator: Automated quality checking"
+    - "map_streaming_engineer: Runtime integration testing"
+    - "audio_wiring: Audio event integration for new areas"
+    - "testing_qa: Playtesting and user experience validation"
+
+  system_integration:
+    - "game_architect: Interface specification and design"
+    - "spec_librarian: Contract definition and validation"
+    - "specialist_agents: Implementation with defined interfaces"
+    - "testing_qa: Integration test coverage"
+    - "performance_engineer: Performance impact analysis"
+
+# Success metrics and quality gates
+quality_gates:
+  performance:
+    - "60fps stable gameplay on target hardware"
+    - "Memory usage <512MB total application"
+    - "<50ms input latency from hardware to game"
+    - "<3s initial load, <500ms area transitions"
+
+  quality:
+    - "Zero production crashes or softlocks"
+    - "80% automated test coverage minimum"
+    - "All maps pass validation without errors"
+    - "Cross-browser audio compatibility verified"
+
+  process:
+    - "<2 week epic completion time average"
+    - "Zero integration bugs due to contract mismatches"
+    - "Automated validation catches 95%+ issues before manual testing"
+    - "Consistent delivery velocity across sprints"

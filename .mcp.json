@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "docs": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/echoes-of-aeria"],
+      "env": {
+        "MCP_SERVER_NAME": "filesystem"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN:-}"
+      }
+    },
+    "postgres": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "set -a && . ./.env && set +a && npx @henkey/postgres-mcp-server --connection-string \"$POSTGRES_CONNECTION_STRING\""
+      ],
+      "env": {}
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/echoes-of-aeria"],
+      "env": {
+        "MCP_SERVER_NAME": "context7"
+      }
+    },
+    "serena": {
+      "command": "npx",
+      "args": ["@cyanheads/git-mcp-server"],
+      "env": {
+        "MCP_SERVER_NAME": "serena",
+        "GIT_REPOSITORY_PATH": "/home/coder/echoes-of-aeria"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp"],
+      "env": {
+        "MCP_SERVER_NAME": "playwright"
+      }
+    }
+  }
+}
