@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,13 +11,13 @@ export default defineConfig({
       '@game': path.resolve(__dirname, './src/game'),
       '@ui': path.resolve(__dirname, './src/ui'),
       '@assets': path.resolve(__dirname, './src/assets'),
-      '@utils': path.resolve(__dirname, './src/utils')
-    }
+      '@utils': path.resolve(__dirname, './src/utils'),
+    },
   },
   server: {
     port: 3000,
     host: true,
-    allowedHosts: ['app--main--infra--jovermier.coder.hahomelabs.com']
+    allowedHosts: ['.coder.hahomelabs.com'],
   },
   build: {
     target: 'esnext',
@@ -26,12 +26,12 @@ export default defineConfig({
       output: {
         manualChunks: {
           phaser: ['phaser'],
-          react: ['react', 'react-dom']
-        }
-      }
-    }
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
   },
   optimizeDeps: {
-    include: ['phaser', 'howler']
-  }
-})
+    include: ['phaser', 'howler'],
+  },
+});

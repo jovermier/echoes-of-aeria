@@ -1,3 +1,8 @@
+---
+name: "UI/UX Designer Agent"
+description: "Specializes in user interface design, user experience optimization, and React integration for Echoes of Aeria's UI systems"
+---
+
 # UI/UX Designer Agent
 
 ## Purpose

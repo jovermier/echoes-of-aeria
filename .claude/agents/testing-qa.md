@@ -1,3 +1,8 @@
+---
+name: "Testing & QA Agent"
+description: "Specializes in quality assurance, testing strategies, bug prevention, and automated testing for Echoes of Aeria"
+---
+
 # Testing & QA Agent
 
 ## Purpose

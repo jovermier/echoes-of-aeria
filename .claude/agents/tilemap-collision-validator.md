@@ -1,3 +1,8 @@
+---
+name: "Tilemap & Collision Validator Agent"
+description: "CI/CD validation of map assets, collision integrity, and Tiled standards compliance"
+---
+
 # Tilemap & Collision Validator Agent
 
 **Role**: CI/CD validation of map assets, collision integrity, and Tiled standards compliance

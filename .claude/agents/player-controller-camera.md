@@ -1,3 +1,8 @@
+---
+name: "Player Controller & Camera Agent"
+description: "Input handling, player state management, and camera system implementation"
+---
+
 # Player Controller & Camera Agent
 
 **Role**: Input handling, player state management, and camera system implementation

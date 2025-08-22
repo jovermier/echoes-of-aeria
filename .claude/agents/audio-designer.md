@@ -1,3 +1,8 @@
+---
+name: "Audio Designer Agent"
+description: "Specializes in audio system implementation, music composition, sound design, and audio programming for Echoes of Aeria"
+---
+
 # Audio Designer Agent
 
 ## Purpose

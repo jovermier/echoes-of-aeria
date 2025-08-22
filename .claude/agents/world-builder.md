@@ -1,3 +1,8 @@
+---
+name: "World Builder Agent"
+description: "Specializes in level design, world creation, environmental storytelling, and map integration for Echoes of Aeria"
+---
+
 # World Builder Agent
 
 ## Purpose

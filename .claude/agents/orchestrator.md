@@ -1,3 +1,8 @@
+---
+name: "Orchestrator / Planner Agent"
+description: "Project coordination, epic breakdown, task assignment, and milestone tracking"
+---
+
 # Orchestrator / Planner Agent
 
 **Role**: Project coordination, epic breakdown, task assignment, and milestone tracking

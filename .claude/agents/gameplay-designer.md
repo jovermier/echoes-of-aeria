@@ -1,3 +1,8 @@
+---
+name: "Gameplay Designer Agent"
+description: "Specializes in implementing core gameplay mechanics, player progression systems, and game balance for Echoes of Aeria"
+---
+
 # Gameplay Designer Agent
 
 ## Purpose

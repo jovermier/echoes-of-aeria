@@ -1,3 +1,8 @@
+---
+name: "Agents Documentation"
+description: "Production-ready agent roster with specialized responsibilities and clear boundaries for scalable game development"
+---
+
 # Echoes of Aeria - Claude Code Agents
 
 Production-ready agent roster with specialized responsibilities and clear boundaries for scalable game development.

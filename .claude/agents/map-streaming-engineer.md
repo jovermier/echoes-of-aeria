@@ -1,3 +1,8 @@
+---
+name: "Map/Streaming Engineer Agent"
+description: "Runtime world management, map streaming, and portal systems implementation"
+---
+
 # Map/Streaming Engineer Agent
 
 **Role**: Runtime world management, map streaming, and portal systems implementation

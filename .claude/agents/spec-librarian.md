@@ -1,3 +1,8 @@
+---
+name: "Spec Librarian Agent"
+description: "Schema management, data contracts, and cross-system standards enforcement"
+---
+
 # Spec Librarian Agent
 
 **Role**: Schema management, data contracts, and cross-system standards enforcement

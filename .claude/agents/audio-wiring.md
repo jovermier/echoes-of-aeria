@@ -1,3 +1,8 @@
+---
+name: "Audio Wiring Agent"
+description: "Audio bank management, event mapping, and runtime audio integration"
+---
+
 # Audio Wiring Agent
 
 **Role**: Audio bank management, event mapping, and runtime audio integration

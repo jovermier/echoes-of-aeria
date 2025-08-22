@@ -1,3 +1,8 @@
+---
+name: "Game Architect Agent"
+description: "Specializes in high-level game architecture, system design, and technical decision-making for Echoes of Aeria"
+---
+
 # Game Architect Agent
 
 ## Purpose

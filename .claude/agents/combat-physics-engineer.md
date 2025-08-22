@@ -1,3 +1,8 @@
+---
+name: "Combat & Physics Engineer Agent"
+description: "Combat mechanics, physics simulation, and player action systems implementation"
+---
+
 # Combat & Physics Engineer Agent
 
 **Role**: Combat mechanics, physics simulation, and player action systems implementation
