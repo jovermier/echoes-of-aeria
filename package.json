@@ -12,6 +12,10 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui --ui-host=0.0.0.0 --ui-port=9323",
+    "test:e2e:report": "playwright show-report --host=0.0.0.0 --port=9325",
+    "test:e2e:debug": "playwright test --debug",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit"
@@ -25,7 +29,8 @@
     "zustand": "5.0.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
+    "@eslint/js": "9.34.0",
+    "@playwright/test": "1.55.0",
     "@testing-library/jest-dom": "6.8.0",
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.1",
