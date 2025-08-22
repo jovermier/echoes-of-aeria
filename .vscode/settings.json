@@ -107,7 +107,6 @@
     "insertBlankLinesBetweenGroups": true
   },
   "git.useIntegratedAskPass": false,
-  "github.gitAuthentication": false,
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.suggest.autoImports": true,
   "typescript.validate.enable": true,
