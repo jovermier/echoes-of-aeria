@@ -14,14 +14,6 @@
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN:-}"
       }
     },
-    "postgres": {
-      "command": "sh",
-      "args": [
-        "-c",
-        "set -a && . ./.env && set +a && npx @henkey/postgres-mcp-server --connection-string \"$POSTGRES_CONNECTION_STRING\""
-      ],
-      "env": {}
-    },
     "context7": {
       "command": "npx",
       "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/echoes-of-aeria"],
