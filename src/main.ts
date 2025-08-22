@@ -554,6 +554,7 @@ const GameState = {
   PAUSED: 'paused' as const,
   INVENTORY: 'inventory' as const,
   GAMEOVER: 'gameover' as const,
+  DUNGEON: 'dungeon' as const,
 } as const;
 
 const TileType = {
@@ -661,6 +662,13 @@ class Camera {
     // Round camera position to whole pixels to prevent flickering
     this.position.x = Math.round(this.position.x);
     this.position.y = Math.round(this.position.y);
+  }
+
+  setTarget(x: number, y: number) {
+    this.position.x = x;
+    this.position.y = y;
+    this.target.x = x;
+    this.target.y = y;
   }
 }
 
@@ -1467,32 +1475,64 @@ class World {
   }
 
   drawHouseWall(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    // High-fidelity house wall based on map details
+    // Enhanced house with proper architecture
 
-    // Base stone wall
-    ctx.fillStyle = '#8D7053';
+    // Base house wall - warm stone color
+    ctx.fillStyle = '#D2B48C'; // Light tan stone
     ctx.fillRect(x, y, size, size);
 
-    // Stone texture with irregular blocks
-    ctx.fillStyle = '#7A5F42';
-    const stonePattern = [
-      [2, 2, 6, 4],
-      [10, 2, 4, 4], // Top row stones
-      [1, 7, 7, 4],
-      [9, 7, 6, 4], // Middle row stones
-      [3, 12, 5, 3],
-      [10, 12, 4, 3], // Bottom row stones
+    // Stone block pattern for realistic masonry
+    ctx.fillStyle = '#C8A882';
+    const stoneBlocks = [
+      [0, 0, 16, 6], [16, 0, 16, 6], // Top row
+      [0, 6, 12, 6], [12, 6, 20, 6], // Second row (offset)
+      [0, 12, 18, 6], [18, 12, 14, 6], // Third row
+      [0, 18, 14, 6], [14, 18, 18, 6], // Fourth row (offset)
+      [0, 24, 32, 8] // Foundation
     ];
 
-    stonePattern.forEach(([sx, sy, sw, sh]) => {
+    stoneBlocks.forEach(([sx, sy, sw, sh]) => {
       if (sx + sw <= size && sy + sh <= size) {
         ctx.fillRect(x + sx, y + sy, sw, sh);
       }
     });
 
-    // Stone highlights for depth
-    ctx.fillStyle = '#A08866';
-    stonePattern.forEach(([sx, sy, sw, sh]) => {
+    // Mortar lines (darker lines between stones)
+    ctx.fillStyle = '#A0916B';
+    // Horizontal mortar lines
+    for (let i = 6; i < size; i += 6) {
+      ctx.fillRect(x, y + i, size, 1);
+    }
+    // Vertical mortar lines (staggered pattern)
+    ctx.fillRect(x + 16, y, 1, 12);
+    ctx.fillRect(x + 12, y + 6, 1, 12);
+    ctx.fillRect(x + 18, y + 12, 1, 12);
+    ctx.fillRect(x + 14, y + 18, 1, 6);
+
+    // Window with frame and glass
+    const windowX = x + 6;
+    const windowY = y + 8;
+    // Window frame
+    ctx.fillStyle = '#8B4513'; // Brown wooden frame
+    ctx.fillRect(windowX, windowY, 8, 8);
+    // Window glass
+    ctx.fillStyle = '#87CEEB'; // Light blue glass
+    ctx.fillRect(windowX + 1, windowY + 1, 6, 6);
+    // Window cross pattern
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(windowX + 3, windowY + 1, 2, 6); // Vertical divider
+    ctx.fillRect(windowX + 1, windowY + 3, 6, 2); // Horizontal divider
+    // Glass reflection
+    ctx.fillStyle = '#E0F6FF';
+    ctx.fillRect(windowX + 1, windowY + 1, 2, 2);
+
+    // Roof overhang/eave
+    ctx.fillStyle = '#654321'; // Dark brown
+    ctx.fillRect(x - 1, y, size + 2, 3);
+
+    // Stone highlights for 3D effect
+    ctx.fillStyle = '#E6D4AA';
+    stoneBlocks.forEach(([sx, sy, sw, sh]) => {
       if (sx + sw <= size && sy + sh <= size) {
         ctx.fillRect(x + sx, y + sy, 1, sh); // Left highlight
         ctx.fillRect(x + sx, y + sy, sw, 1); // Top highlight
@@ -1508,57 +1548,57 @@ class World {
   }
 
   drawHouseDoor(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    // High-fidelity house door with detailed wooden texture
+    // Enhanced house entrance with stone archway and wooden door
 
-    // Stone door frame
-    ctx.fillStyle = '#8D7053';
-    ctx.fillRect(x, y, size, size);
+    // Base wall (same as house wall)
+    this.drawHouseWall(ctx, x, y, size);
 
-    // Arched doorway frame
-    ctx.fillStyle = '#7A5F42';
-    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+    // Stone archway entrance
+    ctx.fillStyle = '#A0916B'; // Darker stone for frame
+    ctx.fillRect(x + 4, y + 6, size - 8, size - 8);
+
+    // Arched top (simple arch shape)
+    ctx.fillStyle = '#A0916B';
+    ctx.fillRect(x + 6, y + 4, size - 12, 4);
+    ctx.fillRect(x + 8, y + 2, size - 16, 4);
 
     // Wooden door
-    ctx.fillStyle = '#6D4C41';
-    ctx.fillRect(x + 3, y + 3, size - 6, size - 6);
+    ctx.fillStyle = '#8B4513'; // Rich brown wood
+    ctx.fillRect(x + 6, y + 8, size - 12, size - 10);
 
-    // Wood grain texture
-    ctx.fillStyle = '#5D4037';
+    // Door frame
+    ctx.fillStyle = '#654321'; // Darker brown frame
+    ctx.fillRect(x + 5, y + 7, 1, size - 9); // Left frame
+    ctx.fillRect(x + size - 6, y + 7, 1, size - 9); // Right frame
+    ctx.fillRect(x + 5, y + 7, size - 10, 1); // Top frame
+
+    // Wood grain lines
+    ctx.fillStyle = '#654321';
     for (let i = 0; i < 3; i++) {
-      ctx.fillRect(x + 4 + i * 3, y + 4, 1, size - 8);
+      ctx.fillRect(x + 8 + i * 4, y + 9, 1, size - 12);
     }
 
-    // Door panels with raised edges
-    ctx.fillStyle = '#4A2C2A';
-    const panelInset = 5;
-    const panelHeight = (size - 12) / 2;
-
+    // Door panels (raised rectangles)
+    ctx.fillStyle = '#A0522D';
     // Upper panel
-    ctx.fillRect(x + panelInset, y + panelInset, size - panelInset * 2, panelHeight - 1);
+    ctx.fillRect(x + 8, y + 10, size - 16, 8);
     // Lower panel
-    ctx.fillRect(
-      x + panelInset,
-      y + panelInset + panelHeight + 1,
-      size - panelInset * 2,
-      panelHeight - 1,
-    );
+    ctx.fillRect(x + 8, y + 20, size - 16, 8);
 
-    // Panel highlights
-    ctx.fillStyle = '#8D6E63';
-    ctx.fillRect(x + panelInset, y + panelInset, size - panelInset * 2, 1); // Top edge
-    ctx.fillRect(x + panelInset, y + panelInset, 1, panelHeight - 1); // Left edge
-    ctx.fillRect(x + panelInset, y + panelInset + panelHeight + 1, size - panelInset * 2, 1);
-    ctx.fillRect(x + panelInset, y + panelInset + panelHeight + 1, 1, panelHeight - 1);
+    // Panel highlights for 3D effect
+    ctx.fillStyle = '#CD853F';
+    ctx.fillRect(x + 8, y + 10, 1, 8); // Upper panel left highlight
+    ctx.fillRect(x + 8, y + 10, size - 16, 1); // Upper panel top highlight
+    ctx.fillRect(x + 8, y + 20, 1, 8); // Lower panel left highlight
+    ctx.fillRect(x + 8, y + 20, size - 16, 1); // Lower panel top highlight
 
-    // Iron door handle and hinges
-    ctx.fillStyle = '#424242';
-    ctx.fillRect(x + size - 7, y + size / 2 - 1, 3, 2); // Handle
-    ctx.fillRect(x + 2, y + 5, 2, 2); // Top hinge
-    ctx.fillRect(x + 2, y + size - 7, 2, 2); // Bottom hinge
+    // Door handle/knob
+    ctx.fillStyle = '#DAA520'; // Brass handle
+    ctx.fillRect(x + size - 10, y + 16, 2, 2);
 
-    // Handle highlight
-    ctx.fillStyle = '#616161';
-    ctx.fillRect(x + size - 7, y + size / 2 - 1, 1, 1);
+    // Door step/threshold
+    ctx.fillStyle = '#696969'; // Gray stone step
+    ctx.fillRect(x + 2, y + size - 2, size - 4, 2);
   }
 
   drawBridge(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
@@ -1624,32 +1664,54 @@ class World {
   }
 
   drawCastleWall(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    // High-fidelity castle wall matching the map's grey structures
+    // Enhanced fortress wall with battlements and architectural details
 
-    // Base grey stone
-    ctx.fillStyle = '#9E9E9E';
+    // Base fortress stone - darker, more imposing
+    ctx.fillStyle = '#606060'; // Dark gray stone
     ctx.fillRect(x, y, size, size);
 
-    // Large stone blocks
-    ctx.fillStyle = '#757575';
-    const castleBlocks = [
-      [1, 1, 7, 5],
-      [9, 1, 6, 5], // Top row
-      [0, 7, 8, 4],
-      [9, 7, 6, 4], // Middle row
-      [2, 12, 6, 3],
-      [9, 12, 6, 3], // Bottom row
+    // Large ashlar stone blocks (cut stone masonry)
+    ctx.fillStyle = '#505050';
+    const fortressBlocks = [
+      [0, 0, 16, 8], [16, 0, 16, 8], // Top row
+      [0, 8, 12, 8], [12, 8, 20, 8], // Second row (offset)
+      [0, 16, 18, 8], [18, 16, 14, 8], // Third row
+      [0, 24, 32, 8] // Foundation row
     ];
 
-    castleBlocks.forEach(([bx, by, bw, bh]) => {
+    fortressBlocks.forEach(([bx, by, bw, bh]) => {
       if (bx + bw <= size && by + bh <= size) {
         ctx.fillRect(x + bx, y + by, bw, bh);
       }
     });
 
-    // Stone highlights for 3D effect
-    ctx.fillStyle = '#BDBDBD';
-    castleBlocks.forEach(([bx, by, bw, bh]) => {
+    // Mortar joints between stones
+    ctx.fillStyle = '#404040';
+    // Horizontal joints
+    for (let i = 8; i < size; i += 8) {
+      ctx.fillRect(x, y + i, size, 1);
+    }
+    // Vertical joints (staggered pattern)
+    ctx.fillRect(x + 16, y, 1, 16);
+    ctx.fillRect(x + 12, y + 8, 1, 16);
+    ctx.fillRect(x + 18, y + 16, 1, 16);
+
+    // Battlements/crenellations at top
+    ctx.fillStyle = '#707070';
+    ctx.fillRect(x, y - 2, 6, 4); // Left merlon
+    ctx.fillRect(x + 10, y - 2, 6, 4); // Center merlon  
+    ctx.fillRect(x + 20, y - 2, 6, 4); // Right merlon
+    ctx.fillRect(x + 26, y - 2, 6, 4); // Far right merlon
+
+    // Arrow slits/embrasures
+    ctx.fillStyle = '#202020'; // Dark openings
+    ctx.fillRect(x + 4, y + 12, 1, 8); // Left arrow slit
+    ctx.fillRect(x + 14, y + 8, 1, 6); // Center arrow slit
+    ctx.fillRect(x + 24, y + 16, 1, 8); // Right arrow slit
+
+    // Stone highlights for 3D fortress effect
+    ctx.fillStyle = '#808080';
+    fortressBlocks.forEach(([bx, by, bw, bh]) => {
       if (bx + bw <= size && by + bh <= size) {
         ctx.fillRect(x + bx, y + by, 1, bh); // Left highlight
         ctx.fillRect(x + bx, y + by, bw, 1); // Top highlight
@@ -2079,9 +2141,7 @@ class ZeldaGame {
   // Dungeon system
   private dungeonEntrances: DungeonEntrance[] = [];
   private currentDungeon: DungeonData | null = null;
-  private dungeonWorld: World | null = null;
   private playerInventory: Set<string> = new Set();
-  private collectedShards: Set<string> = new Set();
 
   constructor() {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -2105,9 +2165,54 @@ class ZeldaGame {
     this.gameLoop(0);
   }
 
+  findSafeStartingPosition(): { x: number, y: number } {
+    // Try the preferred starting position first
+    const preferredX = 45;
+    const preferredY = 35;
+    
+    // Check if preferred position is safe (player is 24x24, so check all corners)
+    if (this.world.isPassable(preferredX * this.world.tileSize, preferredY * this.world.tileSize) &&
+        this.world.isPassable((preferredX * this.world.tileSize) + 24, preferredY * this.world.tileSize) &&
+        this.world.isPassable(preferredX * this.world.tileSize, (preferredY * this.world.tileSize) + 24) &&
+        this.world.isPassable((preferredX * this.world.tileSize) + 24, (preferredY * this.world.tileSize) + 24)) {
+      return { x: preferredX * this.world.tileSize, y: preferredY * this.world.tileSize };
+    }
+    
+    // If preferred position isn't safe, search for a safe grass tile nearby
+    const searchRadius = 10;
+    for (let radius = 1; radius <= searchRadius; radius++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          if (Math.abs(dx) === radius || Math.abs(dy) === radius) { // Only check perimeter
+            const testX = preferredX + dx;
+            const testY = preferredY + dy;
+            
+            // Make sure we're within world bounds
+            if (testX >= 0 && testX < this.world.width - 1 && testY >= 0 && testY < this.world.height - 1) {
+              const pixelX = testX * this.world.tileSize;
+              const pixelY = testY * this.world.tileSize;
+              
+              // Check if this position is safe for the player (24x24)
+              if (this.world.isPassable(pixelX, pixelY) &&
+                  this.world.isPassable(pixelX + 24, pixelY) &&
+                  this.world.isPassable(pixelX, pixelY + 24) &&
+                  this.world.isPassable(pixelX + 24, pixelY + 24)) {
+                return { x: pixelX, y: pixelY };
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback to a known safe position (center of grasslands)
+    return { x: 40 * this.world.tileSize, y: 30 * this.world.tileSize };
+  }
+
   initPlayer() {
+    const safePosition = this.findSafeStartingPosition();
     this.player = {
-      position: { x: 45 * this.world.tileSize, y: 35 * this.world.tileSize }, // Start in safe grassland east of central town
+      position: safePosition, // Start in a safe position away from trees
       size: { x: 24, y: 24 },
       health: 6,
       maxHealth: 6,
@@ -2706,8 +2811,8 @@ class ZeldaGame {
     this.gameState = GameState.PLAYING;
     this.currentDungeon = null;
     
-    // Return player to world
-    this.player.position = { x: 45 * this.world.tileSize, y: 35 * this.world.tileSize };
+    // Return player to safe position in world
+    this.player.position = this.findSafeStartingPosition();
     this.camera.setTarget(this.player.position.x, this.player.position.y);
   }
 
@@ -2774,7 +2879,7 @@ class ZeldaGame {
         if (screenX + tileSize >= 0 && screenX < this.canvas.width &&
             screenY + tileSize >= 0 && screenY < this.canvas.height) {
           
-          this.world.drawTile(ctx, tileType, screenX, screenY, tileSize);
+          this.world.drawDetailedTile(ctx, tileType, screenX, screenY);
         }
       }
     }
@@ -2813,8 +2918,6 @@ class ZeldaGame {
         tileY < 0 || tileY >= this.currentDungeon.height) {
       return false;
     }
-    
-    const tile = this.currentDungeon.tiles[tileY][tileX];
     
     // Check all four corners of the player's bounding box
     const corners = [
@@ -3053,12 +3156,13 @@ class ZeldaGame {
             console.log(`Collected rupee! Total: ${this.player.rupees}`);
             break;
           case 'heart':
-            // Heart containers increase max health and fully heal
-            this.player.heartContainers += 1;
-            this.player.maxHealth += 2; // Each heart container adds 2 health points
-            this.player.health = this.player.maxHealth; // Fully heal when collecting heart container
+            // Regular heart pickup heals 1 heart (2 health points since each heart = 2 points)
+            const healAmount = 2; // 1 heart = 2 health points
+            const oldHealth = this.player.health;
+            this.player.health = Math.min(this.player.health + healAmount, this.player.maxHealth);
+            const actualHeal = this.player.health - oldHealth;
             console.log(
-              `Collected heart container! Total: ${this.player.heartContainers}, Max Health: ${this.player.maxHealth}`,
+              `Collected heart! Healed ${actualHeal/2} heart(s). Health: ${this.player.health}/${this.player.maxHealth}`,
             );
             break;
           case 'key':
@@ -3413,19 +3517,42 @@ class ZeldaGame {
     // Draw rupee icon and count
     const rupeeX = 10;
 
-    // Draw rupee icon (diamond shape)
+    // Enhanced rupee icon (high-fidelity diamond with facets)
+    const rupeeScale = 0.8; // Slightly smaller for UI
+    const rupeeCenterX = rupeeX + 8;
+    const rupeeCenterY = startY + 6;
+    
+    // Rupee body (diamond shape with facets)
     this.ctx.fillStyle = '#00FF00'; // Green rupee
-    this.ctx.fillRect(rupeeX + 4, startY, 8, 2);
-    this.ctx.fillRect(rupeeX + 2, startY + 2, 12, 2);
-    this.ctx.fillRect(rupeeX, startY + 4, 16, 4);
-    this.ctx.fillRect(rupeeX + 2, startY + 8, 12, 2);
-    this.ctx.fillRect(rupeeX + 4, startY + 10, 8, 2);
+    this.ctx.beginPath();
+    this.ctx.moveTo(rupeeCenterX, rupeeCenterY - 5 * rupeeScale); // Top point
+    this.ctx.lineTo(rupeeCenterX + 4 * rupeeScale, rupeeCenterY - 1 * rupeeScale); // Top right
+    this.ctx.lineTo(rupeeCenterX + 4 * rupeeScale, rupeeCenterY + 1 * rupeeScale); // Bottom right
+    this.ctx.lineTo(rupeeCenterX, rupeeCenterY + 5 * rupeeScale); // Bottom point
+    this.ctx.lineTo(rupeeCenterX - 4 * rupeeScale, rupeeCenterY + 1 * rupeeScale); // Bottom left
+    this.ctx.lineTo(rupeeCenterX - 4 * rupeeScale, rupeeCenterY - 1 * rupeeScale); // Top left
+    this.ctx.closePath();
+    this.ctx.fill();
 
-    // Rupee highlight
-    this.ctx.fillStyle = '#90EE90';
-    this.ctx.fillRect(rupeeX + 4, startY + 1, 4, 1);
-    this.ctx.fillRect(rupeeX + 2, startY + 3, 6, 1);
-    this.ctx.fillRect(rupeeX + 1, startY + 5, 6, 1);
+    // Bright highlight facet
+    this.ctx.fillStyle = '#66FF66';
+    this.ctx.beginPath();
+    this.ctx.moveTo(rupeeCenterX, rupeeCenterY - 5 * rupeeScale); // Top point
+    this.ctx.lineTo(rupeeCenterX + 2 * rupeeScale, rupeeCenterY - 1 * rupeeScale); // Top right portion
+    this.ctx.lineTo(rupeeCenterX, rupeeCenterY + 1 * rupeeScale); // Center
+    this.ctx.lineTo(rupeeCenterX - 2 * rupeeScale, rupeeCenterY - 1 * rupeeScale); // Top left portion
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Darker facet for depth
+    this.ctx.fillStyle = '#00AA00';
+    this.ctx.beginPath();
+    this.ctx.moveTo(rupeeCenterX, rupeeCenterY + 1 * rupeeScale); // Center
+    this.ctx.lineTo(rupeeCenterX + 4 * rupeeScale, rupeeCenterY + 1 * rupeeScale); // Bottom right
+    this.ctx.lineTo(rupeeCenterX, rupeeCenterY + 5 * rupeeScale); // Bottom point
+    this.ctx.lineTo(rupeeCenterX - 4 * rupeeScale, rupeeCenterY + 1 * rupeeScale); // Bottom left
+    this.ctx.closePath();
+    this.ctx.fill();
 
     // Currency count
     this.ctx.fillStyle = '#FFFF00';
@@ -3435,24 +3562,45 @@ class ZeldaGame {
     // Draw key icon and count
     const keyX = 100;
 
-    // Draw key icon
+    // Enhanced key icon with realistic details
+    const keyCenterX = keyX + 8;
+    const keyCenterY = startY + 6;
+    
+    // Key shaft (main body)
     this.ctx.fillStyle = '#FFD700'; // Gold key
-    // Key shaft
-    this.ctx.fillRect(keyX, startY + 6, 12, 3);
-    // Key head (circular)
-    this.ctx.fillRect(keyX + 10, startY + 2, 6, 2);
-    this.ctx.fillRect(keyX + 9, startY + 4, 8, 2);
-    this.ctx.fillRect(keyX + 9, startY + 6, 8, 2);
-    this.ctx.fillRect(keyX + 10, startY + 8, 6, 2);
-    // Key teeth
-    this.ctx.fillRect(keyX + 6, startY + 9, 2, 2);
-    this.ctx.fillRect(keyX + 3, startY + 9, 2, 3);
-
-    // Key highlight
+    this.ctx.fillRect(keyCenterX - 1, keyCenterY - 1, 3, 8);
+    
+    // Key head (circular with hole)
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.beginPath();
+    this.ctx.arc(keyCenterX, keyCenterY - 1, 4, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // Key head center hole
+    this.ctx.fillStyle = '#333333';
+    this.ctx.beginPath();
+    this.ctx.arc(keyCenterX, keyCenterY - 1, 1.5, 0, Math.PI * 2);
+    this.ctx.fill();
+    
+    // Key teeth (more detailed)
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.fillRect(keyCenterX + 2, keyCenterY + 4, 3, 2); // Right tooth
+    this.ctx.fillRect(keyCenterX + 2, keyCenterY + 6, 2, 1); // Small tooth
+    this.ctx.fillRect(keyCenterX - 5, keyCenterY + 5, 2, 2); // Left tooth
+    
+    // Key highlights for 3D effect
     this.ctx.fillStyle = '#FFFF99';
-    this.ctx.fillRect(keyX + 1, startY + 7, 6, 1);
-    this.ctx.fillRect(keyX + 11, startY + 3, 3, 1);
-    this.ctx.fillRect(keyX + 10, startY + 5, 4, 1);
+    this.ctx.fillRect(keyCenterX - 1, keyCenterY - 1, 1, 8); // Shaft highlight
+    this.ctx.beginPath();
+    this.ctx.arc(keyCenterX - 1, keyCenterY - 2, 2, 0, Math.PI);
+    this.ctx.fill(); // Head highlight
+    
+    // Key shadows for depth
+    this.ctx.fillStyle = '#DAA520';
+    this.ctx.fillRect(keyCenterX + 1, keyCenterY + 1, 1, 6); // Shaft shadow
+    this.ctx.beginPath();
+    this.ctx.arc(keyCenterX + 1, keyCenterY, 2, 0, Math.PI);
+    this.ctx.fill(); // Head shadow
 
     // Key count
     this.ctx.fillStyle = '#C0C0C0';
@@ -3558,12 +3706,9 @@ class ZeldaGame {
     // NUCLEAR OPTION - Completely destroy and recreate audio system
     this.audioManager.forceResetAudio();
 
-    // Reset player to original starting position and state
+    // Reset player to safe starting position and state
     this.player.health = this.player.maxHealth;
-    this.player.position = {
-      x: 45 * this.world.tileSize,
-      y: 35 * this.world.tileSize,
-    }; // Original starting position
+    this.player.position = this.findSafeStartingPosition();
     this.player.isFlashing = false;
     this.player.flashTimer = 0;
 
@@ -4127,10 +4272,16 @@ class ZeldaGame {
         this.drawRupee(x, y);
         break;
       case 'heart':
-        this.drawHeart(x, y);
+        this.drawHeart(x, y, 'full');
         break;
       case 'key':
         this.drawKey(x, y);
+        break;
+      case 'coin':
+        this.drawCoin(x, y);
+        break;
+      case 'gem':
+        this.drawGem(x, y);
         break;
       default:
         // Fallback to simple rectangle
@@ -4201,34 +4352,163 @@ class ZeldaGame {
   }
 
   drawKey(x: number, y: number) {
-    // Classic key item
+    // Enhanced classic key item with golden appearance
     const centerX = x + 8;
     const centerY = y + 8;
 
-    // Key shaft
-    this.ctx.fillStyle = '#C0C0C0'; // Silver
-    this.ctx.fillRect(centerX - 1, centerY - 2, 2, 8);
+    // Key shaft (main body)
+    this.ctx.fillStyle = '#FFD700'; // Gold key
+    this.ctx.fillRect(centerX - 1.5, centerY - 2, 3, 9);
 
-    // Key head (circular)
-    this.ctx.fillStyle = '#C0C0C0';
+    // Key head (circular with detail)
+    this.ctx.fillStyle = '#FFD700';
     this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY - 2, 3, 0, Math.PI * 2);
+    this.ctx.arc(centerX, centerY - 2, 4, 0, Math.PI * 2);
     this.ctx.fill();
 
     // Key head center hole
-    this.ctx.fillStyle = '#666666';
+    this.ctx.fillStyle = '#333333';
     this.ctx.beginPath();
-    this.ctx.arc(centerX, centerY - 2, 1, 0, Math.PI * 2);
+    this.ctx.arc(centerX, centerY - 2, 1.5, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Key teeth
-    this.ctx.fillStyle = '#C0C0C0';
-    this.ctx.fillRect(centerX + 1, centerY + 4, 2, 1);
-    this.ctx.fillRect(centerX + 1, centerY + 2, 3, 1);
+    // Enhanced key teeth with more detail
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.fillRect(centerX + 1.5, centerY + 4, 3, 1.5); // Main tooth
+    this.ctx.fillRect(centerX + 1.5, centerY + 2, 2, 1); // Upper tooth
+    this.ctx.fillRect(centerX - 4.5, centerY + 3, 2, 1.5); // Left side tooth
 
-    // Highlight
+    // Key highlights for 3D effect
+    this.ctx.fillStyle = '#FFFF99';
+    this.ctx.fillRect(centerX - 1.5, centerY - 2, 1, 9); // Shaft highlight
+    this.ctx.beginPath();
+    this.ctx.arc(centerX - 1, centerY - 3, 2, 0, Math.PI);
+    this.ctx.fill(); // Head highlight
+
+    // Key shadows for depth
+    this.ctx.fillStyle = '#DAA520';
+    this.ctx.fillRect(centerX + 0.5, centerY - 1, 1, 8); // Shaft shadow
+    this.ctx.beginPath();
+    this.ctx.arc(centerX + 1, centerY - 1, 2, 0, Math.PI);
+    this.ctx.fill(); // Head shadow
+
+    // Shine effect on the head
     this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.fillRect(centerX - 2, centerY - 4, 1, 1);
+    this.ctx.beginPath();
+    this.ctx.arc(centerX - 1, centerY - 3, 1, 0, Math.PI * 2);
+    this.ctx.fill();
+  }
+
+  drawCoin(x: number, y: number) {
+    // High-fidelity gold coin with 3D effect
+    const centerX = x + 8;
+    const centerY = y + 8;
+    const radius = 6;
+
+    // Coin shadow (slightly offset)
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    this.ctx.beginPath();
+    this.ctx.arc(centerX + 1, centerY + 1, radius, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Main coin body
+    this.ctx.fillStyle = '#FFD700'; // Gold
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Coin rim (darker gold)
+    this.ctx.strokeStyle = '#DAA520';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, radius - 0.5, 0, Math.PI * 2);
+    this.ctx.stroke();
+
+    // Inner coin design - dollar sign or star pattern
+    this.ctx.fillStyle = '#B8860B'; // Dark goldenrod
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Coin symbol (stylized star/cross)
+    this.ctx.fillStyle = '#FFD700';
+    this.ctx.fillRect(centerX - 1, centerY - 3, 2, 6); // Vertical line
+    this.ctx.fillRect(centerX - 3, centerY - 1, 6, 2); // Horizontal line
+    
+    // Diagonal accents for star effect
+    this.ctx.fillRect(centerX - 2, centerY - 2, 1, 1); // Top-left
+    this.ctx.fillRect(centerX + 1, centerY - 2, 1, 1); // Top-right
+    this.ctx.fillRect(centerX - 2, centerY + 1, 1, 1); // Bottom-left
+    this.ctx.fillRect(centerX + 1, centerY + 1, 1, 1); // Bottom-right
+
+    // Highlight for 3D effect
+    this.ctx.fillStyle = '#FFFF99';
+    this.ctx.beginPath();
+    this.ctx.arc(centerX - 2, centerY - 2, 2, 0, Math.PI);
+    this.ctx.fill();
+
+    // Bright shine spot
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.beginPath();
+    this.ctx.arc(centerX - 2, centerY - 2, 1, 0, Math.PI * 2);
+    this.ctx.fill();
+  }
+
+  drawGem(x: number, y: number) {
+    // High-fidelity crystalline gem
+    const centerX = x + 8;
+    const centerY = y + 8;
+
+    // Gem shadow
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    this.ctx.fillRect(centerX - 4, centerY + 4, 8, 2);
+
+    // Main gem body (hexagonal shape)
+    this.ctx.fillStyle = '#00FFFF'; // Cyan
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX, centerY - 5); // Top point
+    this.ctx.lineTo(centerX + 3, centerY - 2); // Top right
+    this.ctx.lineTo(centerX + 3, centerY + 2); // Bottom right
+    this.ctx.lineTo(centerX, centerY + 5); // Bottom point
+    this.ctx.lineTo(centerX - 3, centerY + 2); // Bottom left
+    this.ctx.lineTo(centerX - 3, centerY - 2); // Top left
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Gem facets for 3D crystal effect
+    this.ctx.fillStyle = '#00EEEE'; // Slightly darker cyan
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX + 1, centerY - 3);
+    this.ctx.lineTo(centerX + 3, centerY - 2);
+    this.ctx.lineTo(centerX + 3, centerY + 2);
+    this.ctx.lineTo(centerX + 1, centerY + 1);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Left facet
+    this.ctx.fillStyle = '#00CCCC';
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX - 1, centerY - 3);
+    this.ctx.lineTo(centerX - 3, centerY - 2);
+    this.ctx.lineTo(centerX - 3, centerY + 2);
+    this.ctx.lineTo(centerX - 1, centerY + 1);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Top highlight facet
+    this.ctx.fillStyle = '#66FFFF';
+    this.ctx.beginPath();
+    this.ctx.moveTo(centerX, centerY - 5);
+    this.ctx.lineTo(centerX + 2, centerY - 2);
+    this.ctx.lineTo(centerX, centerY);
+    this.ctx.lineTo(centerX - 2, centerY - 2);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Bright shine spots
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.fillRect(centerX - 1, centerY - 3, 1, 2);
+    this.ctx.fillRect(centerX + 1, centerY - 1, 1, 1);
   }
 }
 
