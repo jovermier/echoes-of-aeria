@@ -10,8 +10,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@game': path.resolve(__dirname, './src/game'),
       '@ui': path.resolve(__dirname, './src/ui'),
+      '@shared': path.resolve(__dirname, './src/shared'),
       '@assets': path.resolve(__dirname, './src/assets'),
       '@utils': path.resolve(__dirname, './src/utils'),
+      '@world': path.resolve(__dirname, './world'),
+      '@schemas': path.resolve(__dirname, './schemas'),
     },
   },
   server: {

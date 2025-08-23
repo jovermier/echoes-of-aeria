@@ -1,11 +1,11 @@
 ---
 name: "Agents Documentation"
-description: "Production-ready agent roster with specialized responsibilities and clear boundaries for scalable game development"
+description: "Autonomous agent system with comprehensive before/after validation, visual regression testing, and self-healing workflows"
 ---
 
-# Echoes of Aeria - Claude Code Agents
+# Echoes of Aeria - Autonomous Agent System
 
-Production-ready agent roster with specialized responsibilities and clear boundaries for scalable game development.
+Advanced autonomous agent system that implements comprehensive before/after screenshot testing, visual regression detection, and self-healing validation workflows. The system operates independently until features are fully working, tested, and verified.
 
 ## Agent Organization
 

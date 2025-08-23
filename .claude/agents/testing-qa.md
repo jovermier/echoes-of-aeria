@@ -1,21 +1,391 @@
 ---
 name: "Testing & QA Agent"
-description: "Specializes in quality assurance, testing strategies, bug prevention, and automated testing for Echoes of Aeria"
+description: "Autonomous quality assurance with visual verification, before/after screenshot testing, and comprehensive validation workflows"
 ---
 
 # Testing & QA Agent
 
 ## Purpose
-Specializes in quality assurance, testing strategies, bug prevention, and automated testing for Echoes of Aeria.
+Autonomous quality assurance specialist that performs comprehensive testing including visual verification, before/after screenshot testing, and autonomous validation workflows. This agent operates independently to ensure features meet requirements through rigorous testing before marking them as complete.
 
 ## Expertise Areas
-- **Automated Testing**: Unit tests, integration tests, end-to-end testing
+- **Visual Verification Testing**: Before/after screenshot comparison, pixel-level validation
+- **Autonomous Testing Workflows**: Self-executing test suites with retry mechanisms
+- **Comprehensive Feature Validation**: End-to-end requirement verification
 - **Game-Specific Testing**: Gameplay mechanics, progression systems, balance testing
 - **Performance Testing**: Frame rate analysis, memory leaks, load testing
 - **Accessibility Testing**: Screen readers, keyboard navigation, color blindness
 - **Cross-Platform Testing**: Browser compatibility, device performance
+- **Regression Detection**: Automated detection of visual and functional regressions
 
 ## Key Responsibilities
+
+### Autonomous Testing Workflow
+
+#### Pre-Feature Testing Protocol
+```typescript
+interface FeatureTestingWorkflow {
+  preDevelopment: {
+    captureBaseline: () => Promise<ScreenshotSet>;
+    documentExpectedBehavior: () => RequirementSpec[];
+    setupTestEnvironment: () => Promise<TestEnvironment>;
+  };
+  
+  duringDevelopment: {
+    continuousValidation: () => Promise<ValidationResult>;
+    incrementalTesting: () => Promise<TestResult[]>;
+    performanceMonitoring: () => Promise<PerformanceMetrics>;
+  };
+  
+  postDevelopment: {
+    comprehensiveValidation: () => Promise<FullValidationResult>;
+    visualRegressionTest: () => Promise<VisualDiffResult>;
+    requirementVerification: () => Promise<RequirementCheckResult>;
+    autonomousRetry: (issues: Issue[]) => Promise<RetryResult>;
+  };
+}
+
+class AutonomousQAAgent {
+  async testFeatureComplete(
+    featureName: string, 
+    requirements: FeatureRequirement[]
+  ): Promise<FeatureValidationResult> {
+    
+    // 1. Capture baseline screenshots
+    const baseline = await this.captureBaseline(featureName);
+    
+    // 2. Run comprehensive test suite
+    const testResults = await this.runTestSuite(featureName, requirements);
+    
+    // 3. Capture after screenshots
+    const afterScreenshots = await this.captureAfterScreenshots(featureName);
+    
+    // 4. Compare visuals
+    const visualDiff = await this.compareScreenshots(baseline, afterScreenshots);
+    
+    // 5. Validate requirements
+    const requirementCheck = await this.validateRequirements(requirements, testResults);
+    
+    // 6. Check for regressions
+    const regressionCheck = await this.detectRegressions();
+    
+    // 7. Autonomous retry if issues found
+    if (!this.allTestsPassed(testResults, visualDiff, requirementCheck, regressionCheck)) {
+      return await this.autonomousRetryLoop(featureName, requirements);
+    }
+    
+    return {
+      status: 'PASSED',
+      baseline,
+      afterScreenshots,
+      visualDiff,
+      testResults,
+      requirementCheck,
+      regressionCheck,
+      timestamp: new Date().toISOString()
+    };
+  }
+  
+  private async autonomousRetryLoop(
+    featureName: string, 
+    requirements: FeatureRequirement[]
+  ): Promise<FeatureValidationResult> {
+    const maxRetries = 3;
+    let attempt = 1;
+    
+    while (attempt <= maxRetries) {
+      console.log(`🔄 Autonomous retry attempt ${attempt}/${maxRetries} for ${featureName}`);
+      
+      // Identify specific issues
+      const issues = await this.identifyIssues(featureName);
+      
+      // Generate fixes
+      const fixes = await this.generateFixes(issues);
+      
+      // Apply fixes
+      await this.applyFixes(fixes);
+      
+      // Wait for system to stabilize
+      await this.waitForStabilization();
+      
+      // Retry full validation
+      const retryResult = await this.testFeatureComplete(featureName, requirements);
+      
+      if (retryResult.status === 'PASSED') {
+        return {
+          ...retryResult,
+          retryAttempts: attempt,
+          fixesApplied: fixes
+        };
+      }
+      
+      attempt++;
+    }
+    
+    return {
+      status: 'FAILED',
+      error: 'Maximum retry attempts exceeded',
+      retryAttempts: maxRetries,
+      finalIssues: await this.identifyIssues(featureName)
+    };
+  }
+}
+```
+
+#### Visual Regression Testing System
+```typescript
+class VisualRegressionTester {
+  private screenshotDirectory = './test-screenshots';
+  private baselineDirectory = './test-screenshots/baselines';
+  private diffDirectory = './test-screenshots/diffs';
+  
+  async captureGameScreenshot(
+    testName: string, 
+    gameState?: GameStateSnapshot
+  ): Promise<ScreenshotResult> {
+    const page = await this.getGamePage();
+    
+    if (gameState) {
+      await this.setGameState(page, gameState);
+      await this.waitForStateStabilization(page);
+    }
+    
+    const canvas = page.locator('canvas');
+    const screenshotPath = `${this.screenshotDirectory}/${testName}.png`;
+    
+    await canvas.screenshot({ 
+      path: screenshotPath,
+      timeout: 10000 
+    });
+    
+    return {
+      path: screenshotPath,
+      timestamp: new Date().toISOString(),
+      gameState: gameState || await this.getCurrentGameState(page),
+      metadata: await this.extractScreenshotMetadata(page)
+    };
+  }
+  
+  async compareScreenshots(
+    baseline: ScreenshotResult, 
+    current: ScreenshotResult,
+    threshold: number = 0.01
+  ): Promise<VisualDiffResult> {
+    const diff = await this.pixelCompare(baseline.path, current.path);
+    
+    const diffPercentage = diff.mismatchedPixels / diff.totalPixels;
+    const passed = diffPercentage <= threshold;
+    
+    if (!passed) {
+      const diffImagePath = `${this.diffDirectory}/${baseline.testName}-diff.png`;
+      await diff.saveDiffImage(diffImagePath);
+    }
+    
+    return {
+      passed,
+      diffPercentage,
+      mismatchedPixels: diff.mismatchedPixels,
+      totalPixels: diff.totalPixels,
+      diffImagePath: passed ? null : diffImagePath,
+      threshold,
+      baseline: baseline.path,
+      current: current.path
+    };
+  }
+  
+  async validateFeatureVisuals(featureName: string): Promise<FeatureVisualValidation> {
+    const testCases = this.getFeatureTestCases(featureName);
+    const results = [];
+    
+    for (const testCase of testCases) {
+      console.log(`📸 Testing visual: ${testCase.name}`);
+      
+      // Capture baseline if it doesn't exist
+      const baselinePath = `${this.baselineDirectory}/${testCase.name}.png`;
+      if (!await this.fileExists(baselinePath)) {
+        await this.captureGameScreenshot(testCase.name, testCase.gameState);
+        continue; // Skip comparison on first run
+      }
+      
+      // Capture current state
+      const current = await this.captureGameScreenshot(testCase.name, testCase.gameState);
+      const baseline = { path: baselinePath, testName: testCase.name };
+      
+      // Compare
+      const diffResult = await this.compareScreenshots(baseline, current, testCase.threshold || 0.01);
+      
+      results.push({
+        testCase: testCase.name,
+        ...diffResult
+      });
+    }
+    
+    const allPassed = results.every(r => r.passed);
+    
+    return {
+      featureName,
+      passed: allPassed,
+      results,
+      summary: {
+        total: results.length,
+        passed: results.filter(r => r.passed).length,
+        failed: results.filter(r => !r.passed).length
+      }
+    };
+  }
+}
+```
+
+#### Comprehensive Feature Validation
+```typescript
+class ComprehensiveFeatureValidator {
+  async validateFeature(
+    featureName: string,
+    requirements: FeatureRequirement[]
+  ): Promise<ComprehensiveValidationResult> {
+    
+    console.log(`🎮 Starting comprehensive validation for: ${featureName}`);
+    
+    const results = {
+      featureName,
+      timestamp: new Date().toISOString(),
+      phases: {} as ValidationPhases
+    };
+    
+    // Phase 1: Visual Validation
+    console.log('📸 Phase 1: Visual validation...');
+    results.phases.visual = await this.visualTester.validateFeatureVisuals(featureName);
+    
+    // Phase 2: Functional Testing
+    console.log('⚙️ Phase 2: Functional testing...');
+    results.phases.functional = await this.runFunctionalTests(featureName, requirements);
+    
+    // Phase 3: Performance Testing
+    console.log('🚀 Phase 3: Performance testing...');
+    results.phases.performance = await this.runPerformanceTests(featureName);
+    
+    // Phase 4: Integration Testing
+    console.log('🔗 Phase 4: Integration testing...');
+    results.phases.integration = await this.runIntegrationTests(featureName);
+    
+    // Phase 5: Accessibility Testing
+    console.log('♿ Phase 5: Accessibility testing...');
+    results.phases.accessibility = await this.runAccessibilityTests(featureName);
+    
+    // Phase 6: Cross-Platform Testing
+    console.log('🌐 Phase 6: Cross-platform testing...');
+    results.phases.crossPlatform = await this.runCrossPlatformTests(featureName);
+    
+    // Overall validation
+    const allPhasesPassed = Object.values(results.phases).every(phase => phase.passed);
+    
+    return {
+      ...results,
+      overall: {
+        passed: allPhasesPassed,
+        score: this.calculateValidationScore(results.phases),
+        criticalIssues: this.extractCriticalIssues(results.phases),
+        recommendations: this.generateRecommendations(results.phases)
+      }
+    };
+  }
+  
+  private async runFunctionalTests(
+    featureName: string, 
+    requirements: FeatureRequirement[]
+  ): Promise<FunctionalTestResult> {
+    const page = await this.getGamePage();
+    const testResults = [];
+    
+    for (const requirement of requirements) {
+      console.log(`  ✅ Testing requirement: ${requirement.description}`);
+      
+      try {
+        // Setup test preconditions
+        await this.setupTestPreconditions(page, requirement.preconditions);
+        
+        // Execute test steps
+        const stepResults = [];
+        for (const step of requirement.testSteps) {
+          const stepResult = await this.executeTestStep(page, step);
+          stepResults.push(stepResult);
+          
+          if (!stepResult.passed) {
+            break; // Stop on first failure
+          }
+        }
+        
+        // Verify postconditions
+        const postconditionCheck = await this.verifyPostconditions(page, requirement.expectedResults);
+        
+        testResults.push({
+          requirement: requirement.id,
+          description: requirement.description,
+          passed: stepResults.every(s => s.passed) && postconditionCheck.passed,
+          stepResults,
+          postconditionCheck,
+          executionTime: Date.now() - requirement.startTime
+        });
+        
+      } catch (error) {
+        testResults.push({
+          requirement: requirement.id,
+          description: requirement.description,
+          passed: false,
+          error: error.message,
+          stackTrace: error.stack
+        });
+      }
+    }
+    
+    return {
+      passed: testResults.every(t => t.passed),
+      results: testResults,
+      summary: {
+        total: testResults.length,
+        passed: testResults.filter(t => t.passed).length,
+        failed: testResults.filter(t => !t.passed).length
+      }
+    };
+  }
+  
+  private async runPerformanceTests(featureName: string): Promise<PerformanceTestResult> {
+    const page = await this.getGamePage();
+    const performanceMetrics = [];
+    
+    // Test 1: FPS during normal gameplay
+    const fpsTest = await this.measureFPS(page, {
+      duration: 10000, // 10 seconds
+      actions: ['player_movement', 'realm_switching', 'combat']
+    });
+    performanceMetrics.push(fpsTest);
+    
+    // Test 2: Memory usage
+    const memoryTest = await this.measureMemoryUsage(page, {
+      duration: 30000, // 30 seconds
+      operations: ['scene_loading', 'entity_spawning', 'audio_playback']
+    });
+    performanceMetrics.push(memoryTest);
+    
+    // Test 3: Load times
+    const loadTimeTest = await this.measureLoadTimes(page);
+    performanceMetrics.push(loadTimeTest);
+    
+    const allTestsPassed = performanceMetrics.every(m => m.passed);
+    
+    return {
+      passed: allTestsPassed,
+      metrics: performanceMetrics,
+      summary: {
+        avgFPS: fpsTest.avgFPS,
+        minFPS: fpsTest.minFPS,
+        maxMemoryUsage: memoryTest.maxMemoryUsage,
+        avgLoadTime: loadTimeTest.avgLoadTime
+      }
+    };
+  }
+}
+```
 
 ### Testing Strategy Framework (Vitest-Based)
 
@@ -388,63 +758,318 @@ describe('React + Phaser Integration', () => {
 });
 ```
 
-### End-to-End Testing
+### End-to-End Testing with Playwright
 
-#### Gameplay Scenarios
+#### Advanced Game Testing with Visual Verification
+
 ```typescript
-describe('E2E Gameplay Scenarios', () => {
-  test('new player tutorial flow', async () => {
-    const page = await browser.newPage();
+import { test, expect, Page } from '@playwright/test';
+
+// Game-specific Playwright helpers
+class GameTestHelper {
+  constructor(private page: Page) {}
+  
+  async waitForGameLoad() {
+    await this.page.waitForSelector('canvas', { timeout: 10000 });
+    await this.page.waitForFunction(() => 
+      window.game && window.game.scene && window.game.scene.isActive('WorldScene')
+    );
+  }
+  
+  async takeGameScreenshot(name: string) {
+    const gameCanvas = this.page.locator('canvas');
+    await gameCanvas.screenshot({ path: `test-results/${name}.png` });
+  }
+  
+  async movePlayer(direction: 'up' | 'down' | 'left' | 'right', duration = 1000) {
+    const keyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+    await this.page.keyboard.down(keyMap[direction]);
+    await this.page.waitForTimeout(duration);
+    await this.page.keyboard.up(keyMap[direction]);
+  }
+  
+  async getPlayerPosition(): Promise<{x: number, y: number}> {
+    return await this.page.evaluate(() => {
+      const worldScene = window.game.scene.getScene('WorldScene');
+      return worldScene.getPlayerPosition();
+    });
+  }
+  
+  async switchRealm() {
+    await this.page.keyboard.press('KeyE');
+    await this.page.waitForTimeout(500); // Wait for realm switch animation
+  }
+  
+  async testAudio() {
+    await this.page.keyboard.press('KeyT');
+    // Verify audio context is active
+    const audioActive = await this.page.evaluate(() => {
+      return typeof AudioContext !== 'undefined' && 
+             window.audioContext && 
+             window.audioContext.state === 'running';
+    });
+    expect(audioActive).toBeTruthy();
+  }
+}
+
+describe('Echoes of Aeria - E2E Game Testing', () => {
+  let gameHelper: GameTestHelper;
+  
+  test.beforeEach(async ({ page }) => {
+    gameHelper = new GameTestHelper(page);
     await page.goto('http://localhost:3000');
+    await gameHelper.waitForGameLoad();
+  });
+  
+  test('Game loads and renders correctly', async ({ page }) => {
+    // Take initial screenshot
+    await gameHelper.takeGameScreenshot('game-loaded');
     
-    // Start new game
-    await page.click('[data-testid="new-game-button"]');
+    // Verify game canvas exists and has content
+    const canvas = page.locator('canvas');
+    await expect(canvas).toBeVisible();
     
-    // Should be in Hearthmere
-    await page.waitForSelector('[data-testid="region-display"]');
-    const regionText = await page.textContent('[data-testid="region-display"]');
-    expect(regionText).toContain('Hearthmere');
+    // Verify world is rendered by checking canvas is not blank
+    const canvasData = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      return imageData.data.some(pixel => pixel !== 0);
+    });
+    expect(canvasData).toBeTruthy();
+  });
+  
+  test('Player movement system works correctly', async ({ page }) => {
+    const initialPos = await gameHelper.getPlayerPosition();
     
-    // Talk to Keeper Elowen
-    await page.keyboard.press('ArrowUp');
-    await page.keyboard.press('ArrowUp');
-    await page.keyboard.press(' '); // Interact
+    // Move player right
+    await gameHelper.movePlayer('right', 500);
     
-    // Should show dialogue
-    await page.waitForSelector('[data-testid="dialogue-box"]');
-    const dialogueText = await page.textContent('[data-testid="dialogue-text"]');
-    expect(dialogueText).toContain('Welcome to Hearthmere');
+    const newPos = await gameHelper.getPlayerPosition();
+    expect(newPos.x).toBeGreaterThan(initialPos.x);
     
-    // Complete dialogue
-    for (let i = 0; i < 5; i++) {
-      await page.keyboard.press(' ');
+    // Take screenshot after movement
+    await gameHelper.takeGameScreenshot('player-moved');
+  });
+  
+  test('Eclipse/Dayrealm switching works', async ({ page }) => {
+    // Take screenshot in dayrealm
+    await gameHelper.takeGameScreenshot('dayrealm');
+    
+    // Switch to eclipse
+    await gameHelper.switchRealm();
+    
+    // Take screenshot in eclipse
+    await gameHelper.takeGameScreenshot('eclipse');
+    
+    // Verify visual difference between realms
+    const imageDiff = await page.evaluate(async () => {
+      // This would need actual implementation to compare canvas states
+      return window.game.getCurrentRealm() === 'eclipse';
+    });
+    expect(imageDiff).toBeTruthy();
+    
+    // Switch back to dayrealm
+    await gameHelper.switchRealm();
+    await gameHelper.takeGameScreenshot('back-to-dayrealm');
+  });
+  
+  test('NPC interaction system', async ({ page }) => {
+    // Navigate to Keeper Elowen
+    const keeperPosition = { x: 82 * 16, y: 112 * 16 }; // Hearthmere + offset
+    
+    // Move towards NPC
+    await gameHelper.movePlayer('up', 2000);
+    await gameHelper.movePlayer('right', 1000);
+    
+    // Interact with NPC
+    await page.keyboard.press('Space');
+    
+    // Verify dialogue appears in console (since we don't have UI yet)
+    const dialogueShown = await page.evaluate(() => {
+      return window.lastDialogueEvent !== undefined;
+    });
+    
+    await gameHelper.takeGameScreenshot('npc-interaction');
+  });
+  
+  test('Audio system functionality', async ({ page }) => {
+    // Test audio
+    await gameHelper.testAudio();
+    
+    // Test realm switch audio
+    await gameHelper.switchRealm();
+    
+    // Verify audio events were triggered
+    const audioEvents = await page.evaluate(() => {
+      return window.audioEventCount || 0;
+    });
+    expect(audioEvents).toBeGreaterThan(0);
+  });
+  
+  test('Performance monitoring', async ({ page }) => {
+    let frameCount = 0;
+    let totalFrameTime = 0;
+    
+    // Monitor frame rate for 5 seconds
+    const startTime = Date.now();
+    while (Date.now() - startTime < 5000) {
+      const frameStart = performance.now();
+      await page.waitForTimeout(16); // 60fps
+      const frameEnd = performance.now();
+      
+      frameCount++;
+      totalFrameTime += (frameEnd - frameStart);
+    }
+    
+    const avgFPS = frameCount / 5;
+    const avgFrameTime = totalFrameTime / frameCount;
+    
+    // Performance assertions
+    expect(avgFPS).toBeGreaterThan(50); // Should maintain at least 50 FPS
+    expect(avgFrameTime).toBeLessThan(20); // Frame time should be under 20ms
+    
+    console.log(`Performance: ${avgFPS.toFixed(1)} FPS, ${avgFrameTime.toFixed(2)}ms avg frame time`);
+  });
+  
+  test('World generation visual verification', async ({ page }) => {
+    // Take screenshots of different regions
+    const regions = [
+      { name: 'hearthmere', x: 80, y: 110 },
+      { name: 'verdant-lowlands', x: 90, y: 115 },
+      { name: 'riverlands', x: 150, y: 105 }
+    ];
+    
+    for (const region of regions) {
+      // Move player to region
+      await page.evaluate(({x, y}) => {
+        const worldScene = window.game.scene.getScene('WorldScene');
+        worldScene.cameras.main.centerOn(x * 16, y * 16);
+      }, region);
+      
+      await page.waitForTimeout(500);
+      await gameHelper.takeGameScreenshot(`region-${region.name}`);
+    }
+  });
+  
+  test('CPU performance stays under threshold', async ({ page }) => {
+    // Start performance monitoring
+    const perfStart = await page.evaluate(() => performance.now());
+    
+    // Simulate active gameplay
+    for (let i = 0; i < 10; i++) {
+      await gameHelper.movePlayer('right', 200);
+      await gameHelper.movePlayer('down', 200);
+      await gameHelper.switchRealm();
       await page.waitForTimeout(100);
     }
     
-    // Check inventory for Sunflame Lantern
-    await page.keyboard.press('i');
-    await page.waitForSelector('[data-testid="inventory-screen"]');
-    const hasLantern = await page.isVisible('[data-testid="item-sunflame-lantern"]');
-    expect(hasLantern).toBe(true);
-  });
-  
-  test('combat and progression', async () => {
-    const page = await browser.newPage();
-    await page.goto('http://localhost:3000?skipIntro=true');
+    const perfEnd = await page.evaluate(() => performance.now());
+    const totalTime = perfEnd - perfStart;
     
-    // Move to area with enemies
-    await navigateToRegion(page, 'Verdant Lowlands');
-    
-    // Find and fight enemy
-    const initialCurrency = await getCurrencyCount(page);
-    await attackNearestEnemy(page);
-    
-    // Wait for enemy defeat
-    await page.waitForTimeout(500);
-    const newCurrency = await getCurrencyCount(page);
-    expect(newCurrency).toBeGreaterThan(initialCurrency);
+    // Should complete test sequence efficiently
+    expect(totalTime).toBeLessThan(10000); // Under 10 seconds
   });
 });
+
+// Visual regression testing
+describe('Visual Regression Tests', () => {
+  test('Game UI has no visual regressions', async ({ page }) => {
+    await page.goto('http://localhost:3000');
+    
+    // Take full page screenshot
+    await expect(page).toHaveScreenshot('full-game-ui.png');
+    
+    // Take canvas-only screenshot
+    const canvas = page.locator('canvas');
+    await expect(canvas).toHaveScreenshot('game-canvas.png');
+  });
+  
+  test('Different realms render correctly', async ({ page }) => {
+    const gameHelper = new GameTestHelper(page);
+    await page.goto('http://localhost:3000');
+    await gameHelper.waitForGameLoad();
+    
+    // Dayrealm screenshot
+    await expect(page.locator('canvas')).toHaveScreenshot('dayrealm.png');
+    
+    // Eclipse screenshot
+    await gameHelper.switchRealm();
+    await expect(page.locator('canvas')).toHaveScreenshot('eclipse.png');
+  });
+});
+```
+
+#### Playwright Configuration for Game Testing
+
+```typescript
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: [
+    ['html'],
+    ['json', { outputFile: 'test-results/results.json' }]
+  ],
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure'
+  },
+  
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    }
+  ],
+  
+  webServer: {
+    command: 'pnpm dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000
+  }
+});
+```
+
+#### Game-Specific Test Commands
+
+```bash
+# Run all Playwright tests
+pnpm exec playwright test
+
+# Run tests with UI mode for debugging
+pnpm exec playwright test --ui
+
+# Run specific test suite
+pnpm exec playwright test tests/e2e/gameplay.spec.ts
+
+# Generate test report
+pnpm exec playwright show-report
+
+# Update visual baseline screenshots
+pnpm exec playwright test --update-snapshots
+
+# Run performance tests only
+pnpm exec playwright test --grep "performance"
+
+# Debug mode with slow motion
+pnpm exec playwright test --debug --headed --slow-mo=1000
 ```
 
 ### Performance Testing

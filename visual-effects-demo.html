@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes of Aeria - ALTTP Visual Effects Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            color: #ffffff;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #FFD700;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #87CEEB;
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            width: 800px;
+            height: 600px;
+            margin: 0 auto 30px;
+            border: 3px solid #FFD700;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #4A7BCA;
+            margin-bottom: 20px;
+        }
+
+        .controls-section {
+            margin-bottom: 15px;
+        }
+
+        .controls-section h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: rgba(74, 123, 202, 0.2);
+            border-radius: 4px;
+            border: 1px solid #4A7BCA;
+        }
+
+        .key {
+            background: #FFD700;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .effect-description {
+            color: #87CEEB;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #9932CC;
+            box-shadow: 0 4px 8px rgba(153, 50, 204, 0.3);
+        }
+
+        .feature-card h3 {
+            color: #9932CC;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 5px 0;
+            color: #87CEEB;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .feature-list li:before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+            color: #FFD700;
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #FFD700;
+            margin-top: 20px;
+            font-family: monospace;
+            color: #00FF00;
+        }
+
+        .performance-indicator {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            border: 2px solid #4A7BCA;
+        }
+
+        .footer p {
+            color: #87CEEB;
+            margin: 5px 0;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
+            100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        }
+
+        .game-container:hover {
+            animation: glow 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>🗡️ Echoes of Aeria 🗡️</h1>
+            <p>ALTTP-Style Visual Effects System Demo</p>
+            <p style="font-size: 0.9em; color: #FFB6C1;">
+                Experience authentic 16-bit visual effects with modern performance optimization
+            </p>
+        </div>
+
+        <div class="game-container" id="game-container">
+            <!-- Phaser game will be mounted here -->
+        </div>
+
+        <div class="controls-panel">
+            <div class="controls-section">
+                <h3>🎮 Movement & Basic Controls</h3>
+                <div class="control-grid">
+                    <div class="control-item">
+                        <span class="effect-description">Move Player</span>
+                        <span><span class="key">WASD</span> or <span class="key">↑↓←→</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Talk to NPCs</span>
+                        <span><span class="key">SPACE</span> or <span class="key">ENTER</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Toggle Realm</span>
+                        <span><span class="key">E</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Open Inventory</span>
+                        <span><span class="key">I</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <h3>⚔️ Combat & Effects Testing</h3>
+                <div class="control-grid">
+                    <div class="control-item">
+                        <span class="effect-description">Sword Attack (Screen Shake + Particles)</span>
+                        <span><span class="key">X</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Magic Blast (Purple Effects)</span>
+                        <span><span class="key">Z</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Test Damage (Flash + Shake)</span>
+                        <span><span class="key">H</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Test Audio Tone</span>
+                        <span><span class="key">T</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <h3>🔧 Debug & Testing</h3>
+                <div class="control-grid">
+                    <div class="control-item">
+                        <span class="effect-description">Collision Debug Info</span>
+                        <span><span class="key">C</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Force Movement Test</span>
+                        <span><span class="key">M</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Generate Audio Files</span>
+                        <span><span class="key">G</span></span>
+                    </div>
+                    <div class="control-item">
+                        <span class="effect-description">Pause Game</span>
+                        <span><span class="key">ESC</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>✨ Particle Effects</h3>
+                <ul class="feature-list">
+                    <li>Item Collection Sparkles (Golden, colorful)</li>
+                    <li>Combat Impact Dust Clouds</li>
+                    <li>Magic Spell Particles (Spiral patterns)</li>
+                    <li>Environmental Torch Flames</li>
+                    <li>Water Surface Sparkles</li>
+                    <li>Hit Impact Ripples</li>
+                    <li>Healing Glint Effects</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>📺 Screen Effects</h3>
+                <ul class="feature-list">
+                    <li>Dynamic Screen Shake (Intensity-based)</li>
+                    <li>Flash Effects (White, colored)</li>
+                    <li>Diamond Wipe Transitions</li>
+                    <li>Fade to Black Scene Changes</li>
+                    <li>Circle Expand Portal Effects</li>
+                    <li>Realm Switch Color Cycling</li>
+                    <li>Camera Trauma System</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🎭 ALTTP Authenticity</h3>
+                <ul class="feature-list">
+                    <li>16-bit Color Palette</li>
+                    <li>Pixel-Perfect Particle Rendering</li>
+                    <li>Classic 4-Point Star Sparkles</li>
+                    <li>Authentic Combat Feel</li>
+                    <li>Original Timing & Duration</li>
+                    <li>Invincibility Frame System</li>
+                    <li>Classic Sound Integration</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>⚡ Performance Features</h3>
+                <ul class="feature-list">
+                    <li>Object Pooling (200 particle limit)</li>
+                    <li>Viewport Culling</li>
+                    <li>60 FPS Maintained</li>
+                    <li>Effect Priority System</li>
+                    <li>Memory Management</li>
+                    <li>Batch Particle Updates</li>
+                    <li>Real-time Performance Metrics</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span class="performance-indicator">🎯 Visual Effects: <span id="effects-status">Ready</span></span>
+            <span class="performance-indicator">🔥 Active Particles: <span id="particle-count">0</span></span>
+            <span class="performance-indicator">📊 FPS: <span id="fps-counter">60</span></span>
+            <span class="performance-indicator">💾 Memory: <span id="memory-usage">0MB</span></span>
+        </div>
+
+        <div class="footer">
+            <p><strong>🎮 Experience the Magic of ALTTP-Style Visual Effects!</strong></p>
+            <p>Every action has responsive visual feedback with authentic 16-bit charm</p>
+            <p style="color: #FFD700;">✨ Walk around, attack enemies, collect items, and switch realms to see all effects! ✨</p>
+            <p style="font-size: 0.8em; color: #87CEEB;">
+                Built with Phaser 3 + TypeScript + Modern Web Audio API<br>
+                Particle System with Object Pooling for Optimal Performance
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the main game
+        import { createGame } from './src/game/Game.js';
+        
+        // Initialize the game
+        async function initializeDemo() {
+            try {
+                const container = document.getElementById('game-container');
+                const game = await createGame(container);
+                
+                document.getElementById('effects-status').textContent = 'Active';
+                console.log('🎮 Echoes of Aeria Visual Effects Demo Ready!');
+                console.log('🎯 Use the controls above to test all visual effects');
+                console.log('✨ Look for sparkles, screen shake, particles, and transitions!');
+                
+                // Set up performance monitoring
+                let lastTime = performance.now();
+                let frameCount = 0;
+                
+                function updatePerformanceDisplay() {
+                    frameCount++;
+                    const currentTime = performance.now();
+                    
+                    if (currentTime - lastTime >= 1000) {
+                        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                        document.getElementById('fps-counter').textContent = fps;
+                        
+                        // Get memory usage if available
+                        if (performance.memory) {
+                            const memory = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+                            document.getElementById('memory-usage').textContent = memory + 'MB';
+                        }
+                        
+                        frameCount = 0;
+                        lastTime = currentTime;
+                    }
+                    
+                    requestAnimationFrame(updatePerformanceDisplay);
+                }
+                
+                requestAnimationFrame(updatePerformanceDisplay);
+                
+                // Listen for visual effects events to update particle count
+                let particleCount = 0;
+                window.addEventListener('message', (event) => {
+                    if (event.data.type === 'particle-count') {
+                        particleCount = event.data.count;
+                        document.getElementById('particle-count').textContent = particleCount;
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to initialize visual effects demo:', error);
+                document.getElementById('effects-status').textContent = 'Error';
+                document.getElementById('effects-status').style.color = '#FF6B6B';
+            }
+        }
+        
+        // Initialize when page loads
+        initializeDemo();
+        
+        // Add some interactive effects to the page itself
+        document.addEventListener('mousemove', (e) => {
+            const container = document.querySelector('.game-container');
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            const rotateX = y / 10;
+            const rotateY = -x / 10;
+            
+            container.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        
+        document.addEventListener('mouseleave', () => {
+            const container = document.querySelector('.game-container');
+            container.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+        });
+    </script>
+</body>
+</html>

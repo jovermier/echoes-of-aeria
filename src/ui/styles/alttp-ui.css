@@ -1,0 +1,511 @@
+/* A Link to the Past Authentic UI Styles */
+/* Recreating the classic 16-bit Zelda interface aesthetics */
+
+/* =========================== */
+/* ALTTP Color Palette */
+/* =========================== */
+:root {
+  /* Core ALTTP Colors */
+  --alttp-bg-dark: #101820;
+  --alttp-bg-medium: #283040;
+  --alttp-bg-light: #404860;
+  
+  /* Stone/Metal UI Colors */
+  --alttp-stone-dark: #3c3c3c;
+  --alttp-stone-medium: #5c5c5c;
+  --alttp-stone-light: #8c8c8c;
+  --alttp-stone-highlight: #bcbcbc;
+  
+  /* Interface Borders */
+  --alttp-border-dark: #1c1c1c;
+  --alttp-border-medium: #4c4c4c;
+  --alttp-border-light: #9c9c9c;
+  
+  /* Heart Colors (authentic ALTTP) */
+  --alttp-heart-full: #f83800;
+  --alttp-heart-half: #f85800;
+  --alttp-heart-empty: #381800;
+  --alttp-heart-outline: #080808;
+  
+  /* Rupee/Currency Colors */
+  --alttp-rupee-green: #00d800;
+  --alttp-rupee-blue: #0080f8;
+  --alttp-rupee-red: #f80000;
+  --alttp-rupee-yellow: #f8d800;
+  
+  /* Magic/Mana Colors */
+  --alttp-magic-full: #00a0f8;
+  --alttp-magic-half: #0060b8;
+  --alttp-magic-empty: #002040;
+  
+  /* Text Colors */
+  --alttp-text-primary: #ffffff;
+  --alttp-text-secondary: #d0d0d0;
+  --alttp-text-highlight: #f8f800;
+  --alttp-text-shadow: #000000;
+  
+  /* Selection/Highlight */
+  --alttp-select-bg: #f8f800;
+  --alttp-select-text: #000000;
+}
+
+/* =========================== */
+/* ALTTP Base Styles */
+/* =========================== */
+.alttp-ui {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.0;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+}
+
+/* =========================== */
+/* ALTTP Panel/Window System */
+/* =========================== */
+.alttp-panel {
+  background: 
+    linear-gradient(135deg, var(--alttp-stone-light) 0%, var(--alttp-stone-medium) 50%, var(--alttp-stone-dark) 100%);
+  border: 2px solid;
+  border-top-color: var(--alttp-border-light);
+  border-left-color: var(--alttp-border-light);
+  border-right-color: var(--alttp-border-dark);
+  border-bottom-color: var(--alttp-border-dark);
+  position: relative;
+}
+
+.alttp-panel::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border: 1px solid;
+  border-top-color: var(--alttp-border-medium);
+  border-left-color: var(--alttp-border-medium);
+  border-right-color: var(--alttp-stone-dark);
+  border-bottom-color: var(--alttp-stone-dark);
+  pointer-events: none;
+}
+
+/* Inset panel variant */
+.alttp-panel-inset {
+  background: 
+    linear-gradient(135deg, var(--alttp-stone-dark) 0%, var(--alttp-stone-medium) 50%, var(--alttp-stone-light) 100%);
+  border: 2px solid;
+  border-top-color: var(--alttp-border-dark);
+  border-left-color: var(--alttp-border-dark);
+  border-right-color: var(--alttp-border-light);
+  border-bottom-color: var(--alttp-border-light);
+}
+
+.alttp-panel-inset::before {
+  border-top-color: var(--alttp-stone-dark);
+  border-left-color: var(--alttp-stone-dark);
+  border-right-color: var(--alttp-border-medium);
+  border-bottom-color: var(--alttp-border-medium);
+}
+
+/* =========================== */
+/* ALTTP Heart System */
+/* =========================== */
+.alttp-heart {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: inline-block;
+  margin-right: 1px;
+}
+
+.alttp-heart canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Fallback heart using CSS */
+.alttp-heart-css {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: inline-block;
+  margin-right: 1px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.alttp-heart-full {
+  background-image: 
+    radial-gradient(circle at 30% 40%, var(--alttp-heart-full) 20%, transparent 21%),
+    radial-gradient(circle at 70% 40%, var(--alttp-heart-full) 20%, transparent 21%),
+    linear-gradient(45deg, transparent 35%, var(--alttp-heart-full) 36%, var(--alttp-heart-full) 64%, transparent 65%);
+}
+
+.alttp-heart-half {
+  background-image: 
+    radial-gradient(circle at 30% 40%, var(--alttp-heart-half) 20%, transparent 21%),
+    radial-gradient(circle at 70% 40%, var(--alttp-heart-empty) 20%, transparent 21%),
+    linear-gradient(45deg, transparent 35%, var(--alttp-heart-half) 36%, var(--alttp-heart-empty) 50%, var(--alttp-heart-empty) 64%, transparent 65%);
+}
+
+.alttp-heart-empty {
+  background-image: 
+    radial-gradient(circle at 30% 40%, var(--alttp-heart-empty) 20%, transparent 21%),
+    radial-gradient(circle at 70% 40%, var(--alttp-heart-empty) 20%, transparent 21%),
+    linear-gradient(45deg, transparent 35%, var(--alttp-heart-empty) 36%, var(--alttp-heart-empty) 64%, transparent 65%);
+  border: 1px solid var(--alttp-heart-outline);
+}
+
+/* =========================== */
+/* ALTTP Button System */
+/* =========================== */
+.alttp-button {
+  background: 
+    linear-gradient(135deg, var(--alttp-stone-light) 0%, var(--alttp-stone-medium) 100%);
+  border: 2px solid;
+  border-top-color: var(--alttp-border-light);
+  border-left-color: var(--alttp-border-light);
+  border-right-color: var(--alttp-border-dark);
+  border-bottom-color: var(--alttp-border-dark);
+  color: var(--alttp-text-primary);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  outline: none;
+  text-shadow: 1px 1px 0 var(--alttp-text-shadow);
+  position: relative;
+}
+
+.alttp-button::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border: 1px solid var(--alttp-border-medium);
+  pointer-events: none;
+}
+
+.alttp-button:hover {
+  background: 
+    linear-gradient(135deg, var(--alttp-stone-highlight) 0%, var(--alttp-stone-light) 100%);
+}
+
+.alttp-button:active,
+.alttp-button.pressed {
+  background: 
+    linear-gradient(135deg, var(--alttp-stone-dark) 0%, var(--alttp-stone-medium) 100%);
+  border-top-color: var(--alttp-border-dark);
+  border-left-color: var(--alttp-border-dark);
+  border-right-color: var(--alttp-border-light);
+  border-bottom-color: var(--alttp-border-light);
+  transform: translate(1px, 1px);
+}
+
+.alttp-button:active::before,
+.alttp-button.pressed::before {
+  border-color: var(--alttp-stone-dark);
+}
+
+/* =========================== */
+/* ALTTP Text System */
+/* =========================== */
+.alttp-text {
+  color: var(--alttp-text-primary);
+  text-shadow: 1px 1px 0 var(--alttp-text-shadow);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.alttp-text-large {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.alttp-text-small {
+  font-size: 10px;
+}
+
+.alttp-text-highlight {
+  color: var(--alttp-text-highlight);
+}
+
+.alttp-text-secondary {
+  color: var(--alttp-text-secondary);
+}
+
+/* =========================== */
+/* ALTTP Item Grid System */
+/* =========================== */
+.alttp-item-grid {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+
+.alttp-item-slot {
+  width: 32px;
+  height: 32px;
+  background: var(--alttp-stone-dark);
+  border: 2px solid;
+  border-top-color: var(--alttp-border-dark);
+  border-left-color: var(--alttp-border-dark);
+  border-right-color: var(--alttp-border-light);
+  border-bottom-color: var(--alttp-border-light);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alttp-item-slot::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border: 1px solid var(--alttp-stone-medium);
+}
+
+.alttp-item-slot.selected {
+  background: var(--alttp-select-bg);
+  animation: alttp-select-pulse 1s ease-in-out infinite alternate;
+}
+
+.alttp-item-slot.obtained {
+  background: var(--alttp-stone-medium);
+}
+
+.alttp-item-slot.obtained::before {
+  border-color: var(--alttp-border-medium);
+}
+
+@keyframes alttp-select-pulse {
+  0% { background: var(--alttp-select-bg); }
+  100% { background: #ffff40; }
+}
+
+/* =========================== */
+/* ALTTP Menu Cursor */
+/* =========================== */
+.alttp-cursor {
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-left: 8px solid var(--alttp-text-highlight);
+  animation: alttp-cursor-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes alttp-cursor-pulse {
+  0% { border-left-color: var(--alttp-text-highlight); }
+  100% { border-left-color: #ffff80; }
+}
+
+/* =========================== */
+/* ALTTP Counter Display */
+/* =========================== */
+.alttp-counter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.alttp-counter-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.alttp-counter-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--alttp-text-primary);
+  text-shadow: 1px 1px 0 var(--alttp-text-shadow);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* =========================== */
+/* ALTTP Dialogue Box */
+/* =========================== */
+.alttp-dialogue {
+  background: var(--alttp-bg-dark);
+  border: 4px solid;
+  border-top-color: var(--alttp-border-light);
+  border-left-color: var(--alttp-border-light);
+  border-right-color: var(--alttp-border-dark);
+  border-bottom-color: var(--alttp-border-dark);
+  padding: 16px;
+  position: relative;
+}
+
+.alttp-dialogue::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border: 2px solid;
+  border-top-color: var(--alttp-bg-medium);
+  border-left-color: var(--alttp-bg-medium);
+  border-right-color: var(--alttp-bg-dark);
+  border-bottom-color: var(--alttp-bg-dark);
+}
+
+.alttp-dialogue-text {
+  position: relative;
+  z-index: 1;
+  color: var(--alttp-text-primary);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  text-shadow: 1px 1px 0 var(--alttp-text-shadow);
+}
+
+/* =========================== */
+/* ALTTP Minimap Frame */
+/* =========================== */
+.alttp-minimap {
+  width: 128px;
+  height: 128px;
+  background: var(--alttp-bg-dark);
+  border: 3px solid;
+  border-top-color: var(--alttp-border-dark);
+  border-left-color: var(--alttp-border-dark);
+  border-right-color: var(--alttp-border-light);
+  border-bottom-color: var(--alttp-border-light);
+  position: relative;
+}
+
+.alttp-minimap::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border: 1px solid var(--alttp-border-medium);
+}
+
+.alttp-minimap canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* =========================== */
+/* ALTTP Magic Meter */
+/* =========================== */
+.alttp-magic-meter {
+  width: 64px;
+  height: 8px;
+  background: var(--alttp-magic-empty);
+  border: 1px solid var(--alttp-border-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+.alttp-magic-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--alttp-magic-full) 0%, var(--alttp-magic-half) 100%);
+  transition: width 0.3s ease;
+}
+
+/* =========================== */
+/* ALTTP Responsive Adjustments */
+/* =========================== */
+@media (max-width: 768px) {
+  .alttp-ui {
+    font-size: 10px;
+  }
+  
+  .alttp-heart {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .alttp-item-slot {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .alttp-button {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  
+  .alttp-minimap {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+/* =========================== */
+/* ALTTP Animations */
+/* =========================== */
+@keyframes alttp-heart-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.alttp-heart-full {
+  animation: alttp-heart-beat 2s ease-in-out infinite;
+}
+
+@keyframes alttp-rupee-sparkle {
+  0%, 100% { 
+    filter: brightness(1) hue-rotate(0deg); 
+    transform: scale(1);
+  }
+  25% { 
+    filter: brightness(1.2) hue-rotate(10deg); 
+    transform: scale(1.05);
+  }
+  50% { 
+    filter: brightness(1.4) hue-rotate(20deg); 
+    transform: scale(1.1);
+  }
+  75% { 
+    filter: brightness(1.2) hue-rotate(10deg); 
+    transform: scale(1.05);
+  }
+}
+
+.alttp-rupee-counter.animate {
+  animation: alttp-rupee-sparkle 0.8s ease-out;
+}
+
+/* =========================== */
+/* ALTTP Accessibility */
+/* =========================== */
+@media (prefers-reduced-motion: reduce) {
+  .alttp-heart-full,
+  .alttp-cursor,
+  .alttp-item-slot.selected,
+  .alttp-rupee-counter.animate {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  :root {
+    --alttp-text-primary: #ffffff;
+    --alttp-text-shadow: #000000;
+    --alttp-border-light: #ffffff;
+    --alttp-border-dark: #000000;
+  }
+}

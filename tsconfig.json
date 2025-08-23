@@ -22,8 +22,11 @@
       "@/*": ["src/*"],
       "@game/*": ["src/game/*"],
       "@ui/*": ["src/ui/*"],
+      "@shared/*": ["src/shared/*"],
       "@assets/*": ["src/assets/*"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@world/*": ["world/*"],
+      "@schemas/*": ["schemas/*"]
     },
 
     /* Linting */

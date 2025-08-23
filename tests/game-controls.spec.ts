@@ -1,39 +1,93 @@
 import { test, expect } from '@playwright/test';
 
+// Helper functions for game control testing
+class ControlTestHelper {
+  constructor(private page: any) {}
+  
+  async focusGame() {
+    const canvas = this.page.locator('canvas');
+    await canvas.click();
+    await this.page.waitForTimeout(100);
+  }
+  
+  async getPlayerPosition(): Promise<{ x: number; y: number } | null> {
+    return await this.page.evaluate(() => {
+      try {
+        const game = (window as any).phaserGame;
+        if (!game) return null;
+        
+        const scene = game.scene.getScene('WorldScene');
+        if (!scene || !scene.scene.isActive()) return null;
+        
+        const world = scene.world;
+        if (!world) return null;
+        
+        const playerEntities = world.getEntitiesWithComponents('player', 'transform');
+        if (playerEntities.length === 0) return null;
+        
+        const playerId = playerEntities[0].id;
+        const transform = world.getComponent(playerId, 'transform');
+        
+        return transform ? { x: transform.position.x, y: transform.position.y } : null;
+      } catch (error) {
+        console.error('Error getting player position:', error);
+        return null;
+      }
+    });
+  }
+}
+
 test.describe('Game Controls', () => {
+  let controlHelper: ControlTestHelper;
+  
   test.beforeEach(async ({ page }) => {
+    controlHelper = new ControlTestHelper(page);
     await page.goto('/');
     
     // Wait for the game to load
     const canvas = page.locator('canvas');
     await expect(canvas).toBeVisible();
     await page.waitForTimeout(2000);
+    await controlHelper.focusGame();
   });
 
-  test('should respond to keyboard input', async ({ page }) => {
-    const canvas = page.locator('canvas');
+  test('should respond to keyboard input with actual movement', async ({ page }) => {
+    const initialPosition = await controlHelper.getPlayerPosition();
+    expect(initialPosition).toBeTruthy();
     
-    // Focus the canvas to ensure it receives keyboard events
-    await canvas.click();
-
-    // Test movement keys (WASD)
-    await page.keyboard.press('KeyW');
-    await page.keyboard.press('KeyA');
-    await page.keyboard.press('KeyS');
-    await page.keyboard.press('KeyD');
-
-    // Test arrow keys
-    await page.keyboard.press('ArrowUp');
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowRight');
-
-    // Test action keys
+    // Test WASD movement with position verification
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(300);
+    await page.keyboard.up('KeyD');
+    await page.waitForTimeout(100);
+    
+    const afterRightMove = await controlHelper.getPlayerPosition();
+    expect(afterRightMove).toBeTruthy();
+    expect(afterRightMove!.x).toBeGreaterThan(initialPosition!.x);
+    
+    // Test arrow key movement
+    await page.keyboard.down('ArrowUp');
+    await page.waitForTimeout(300);
+    await page.keyboard.up('ArrowUp');
+    await page.waitForTimeout(100);
+    
+    const afterUpMove = await controlHelper.getPlayerPosition();
+    expect(afterUpMove).toBeTruthy();
+    expect(afterUpMove!.y).toBeLessThan(afterRightMove!.y);
+    
+    // Test action keys don't break movement
     await page.keyboard.press('Space'); // Attack/Interact
     await page.keyboard.press('KeyE'); // Alternative interact
     
-    // If we get here without errors, the game is responding to input
-    expect(true).toBe(true);
+    // Player should still be able to move after actions
+    await page.keyboard.down('KeyA');
+    await page.waitForTimeout(200);
+    await page.keyboard.up('KeyA');
+    await page.waitForTimeout(100);
+    
+    const finalPosition = await controlHelper.getPlayerPosition();
+    expect(finalPosition).toBeTruthy();
+    expect(finalPosition!.x).toBeLessThan(afterUpMove!.x);
   });
 
   test('should handle mouse interactions', async ({ page }) => {

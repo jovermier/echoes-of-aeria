@@ -75,8 +75,40 @@ export class AudioManager {
   
   private loadSingleAsset(asset: AudioAsset): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Check if this is a generated audio file
+      let audioSrc = asset.src;
+      
+      if (Array.isArray(asset.src)) {
+        // Check each URL in the array for generated audio
+        for (const url of asset.src) {
+          const filename = url.split('/').pop() || '';
+          const category = url.includes('/music/') ? 'music' : 'sfx';
+          
+          if ((window as any).generatedAudioFiles) {
+            const audioFiles = (window as any).generatedAudioFiles;
+            if (audioFiles[category] && audioFiles[category][filename]) {
+              audioSrc = [audioFiles[category][filename]];
+              console.log(`🎵 Using generated audio for ${asset.key}: ${filename}`);
+              break;
+            }
+          }
+        }
+      } else {
+        // Single URL
+        const filename = asset.src.split('/').pop() || '';
+        const category = asset.src.includes('/music/') ? 'music' : 'sfx';
+        
+        if ((window as any).generatedAudioFiles) {
+          const audioFiles = (window as any).generatedAudioFiles;
+          if (audioFiles[category] && audioFiles[category][filename]) {
+            audioSrc = audioFiles[category][filename];
+            console.log(`🎵 Using generated audio for ${asset.key}: ${filename}`);
+          }
+        }
+      }
+      
       const howlOptions: HowlOptions = {
-        src: asset.src,
+        src: audioSrc,
         volume: asset.volume * this.mixer[asset.category],
         loop: asset.loop || false,
         html5: false, // Use Web Audio API for precise control

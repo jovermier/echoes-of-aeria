@@ -168,24 +168,74 @@ export interface EventBus {
   once<T extends BaseGameEvent>(eventType: T['type'], handler: EventHandler<T>): void;
 }
 
-// Supporting types
-export interface Vector2 {
-  x: number;
-  y: number;
+// Import shared types instead of redefining
+import type { Vector2, Rectangle, Direction } from './types.js';
+
+// Simple event emitter implementation
+class SimpleEventEmitter {
+  private listeners: Map<string, Function[]> = new Map();
+
+  emit(event: { type: string; payload: any; timestamp: number }): void {
+    const eventListeners = this.listeners.get(event.type);
+    if (eventListeners) {
+      eventListeners.forEach(listener => {
+        try {
+          listener(event);
+        } catch (error) {
+          console.error(`Error in event listener for ${event.type}:`, error);
+        }
+      });
+    }
+  }
+
+  on(eventType: string, listener: Function): () => void {
+    if (!this.listeners.has(eventType)) {
+      this.listeners.set(eventType, []);
+    }
+    
+    this.listeners.get(eventType)!.push(listener);
+    
+    // Return unsubscribe function
+    return () => {
+      const eventListeners = this.listeners.get(eventType);
+      if (eventListeners) {
+        const index = eventListeners.indexOf(listener);
+        if (index > -1) {
+          eventListeners.splice(index, 1);
+        }
+      }
+    };
+  }
+
+  off(eventType: string, listener: Function): void {
+    const eventListeners = this.listeners.get(eventType);
+    if (eventListeners) {
+      const index = eventListeners.indexOf(listener);
+      if (index > -1) {
+        eventListeners.splice(index, 1);
+      }
+    }
+  }
+
+  clear(): void {
+    this.listeners.clear();
+  }
 }
 
-export interface Rectangle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+// Global event emitter instance
+export const gameEvents = new SimpleEventEmitter();
+
+// Helper function for emitting player moved events
+export const emitPlayerMoved = (position: Vector2, direction: string) => {
+  gameEvents.emit({
+    type: 'player.moved',
+    payload: { position, direction },
+    timestamp: Date.now()
+  });
+};
 
 export type Direction8 =
-  | 'up'
-  | 'down'
-  | 'left'
-  | 'right'
+  | Direction
   | 'up-left'
   | 'up-right'
   | 'down-left'

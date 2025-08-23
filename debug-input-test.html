@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+        }
+        .console {
+            background: #1a1a1a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: scroll;
+        }
+        .test-area {
+            border: 2px solid #3498db;
+            padding: 20px;
+            margin: 10px 0;
+            background: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <h1>Input System Debug Test</h1>
+    <p>Click the test area below and try pressing keys. Check console for debug output.</p>
+    
+    <div class="test-area" tabindex="0" id="testArea">
+        <h3>Test Area (Click here then press WASD or Arrow keys)</h3>
+        <p>Status: <span id="status">Ready</span></p>
+        <p>Last Key: <span id="lastKey">None</span></p>
+    </div>
+    
+    <div class="console" id="console">
+        <h3>Debug Console:</h3>
+    </div>
+
+    <script>
+        const testArea = document.getElementById('testArea');
+        const status = document.getElementById('status');
+        const lastKey = document.getElementById('lastKey');
+        const consoleDiv = document.getElementById('console');
+        
+        function log(message) {
+            const now = new Date().toLocaleTimeString();
+            consoleDiv.innerHTML += `<div>[${now}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+
+        testArea.addEventListener('focus', () => {
+            status.textContent = 'Focused - Ready for input';
+            log('Test area focused');
+        });
+
+        testArea.addEventListener('blur', () => {
+            status.textContent = 'Not focused';
+            log('Test area lost focus');
+        });
+
+        testArea.addEventListener('keydown', (event) => {
+            const keyInfo = `${event.code} (${event.key})`;
+            lastKey.textContent = keyInfo;
+            log(`KeyDown: ${keyInfo}`);
+            
+            // Test the same keys that the game uses
+            const movementKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'];
+            if (movementKeys.includes(event.code)) {
+                log(`✓ Movement key detected: ${event.code}`);
+                event.preventDefault();
+            }
+        });
+
+        testArea.addEventListener('keyup', (event) => {
+            log(`KeyUp: ${event.code} (${event.key})`);
+        });
+
+        // Auto-focus the test area
+        testArea.focus();
+        log('Input test initialized - click the test area and press keys');
+    </script>
+</body>
+</html>

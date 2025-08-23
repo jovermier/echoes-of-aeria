@@ -1,4 +1,5 @@
 import './style.css'
+import { spriteManager } from './game/systems/SpriteManager'
 
 // Echoes of Aeria - Main Game File
 // Based on the Game Design Document
@@ -78,6 +79,9 @@ interface Player extends Entity {
   lastAttackTime: number;
   invulnerable: boolean;
   invulnerableTimer: number;
+  // Enhanced animation system
+  isMoving: boolean;
+  animationSpeed: number;
 }
 
 interface PlayerInventory {
@@ -189,6 +193,10 @@ class EchoesOfAeria {
   private camera: { x: number, y: number } = { x: 0, y: 0 };
   
   private lastTime: number = 0;
+  
+  // Graphics system
+  private tileSprites: Map<number, HTMLCanvasElement> = new Map();
+  private characterSprites: Map<string, HTMLCanvasElement> = new Map();
 
   constructor() {
     this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -198,11 +206,48 @@ class EchoesOfAeria {
     this.canvas.width = VIEWPORT_WIDTH * TILE_SIZE;
     this.canvas.height = VIEWPORT_HEIGHT * TILE_SIZE;
     
+    // Ensure pixel-perfect rendering
+    this.ctx.imageSmoothingEnabled = false;
+    
+    this.initGraphics();
     this.world = this.generateWorld();
     this.initPlayer();
     this.initNPCs();
     this.setupEventListeners();
     this.startGame();
+  }
+
+  initGraphics() {
+    // Generate ALTTP-quality tile sprites for all tile types
+    const tileTypes = [
+      { type: 'grass', id: TileType.GRASS },
+      { type: 'water', id: TileType.WATER },
+      { type: 'forest', id: TileType.FOREST },
+      { type: 'mountain', id: TileType.MOUNTAIN },
+      { type: 'desert', id: TileType.DESERT },
+      { type: 'snow', id: TileType.SNOW },
+      { type: 'marsh', id: TileType.MARSH },
+      { type: 'volcanic', id: TileType.VOLCANIC },
+      { type: 'wall', id: TileType.WALL },
+      { type: 'door', id: TileType.DOOR },
+      { type: 'bridge', id: TileType.BRIDGE },
+      { type: 'path', id: TileType.PATH },
+      { type: 'house', id: TileType.HOUSE },
+      { type: 'shrine', id: TileType.SHRINE },
+      { type: 'chest', id: TileType.CHEST },
+      { type: 'flower', id: TileType.FLOWER }
+    ];
+
+    // Cache all tile sprites
+    tileTypes.forEach(({ type, id }) => {
+      const sprite = spriteManager.generateTile(type, TILE_SIZE);
+      this.tileSprites.set(id, sprite);
+    });
+
+    // Generate character sprites
+    this.characterSprites.set('player', spriteManager.generateALTTPCharacterSprite('player', TILE_SIZE, TILE_SIZE));
+    this.characterSprites.set('npc_keeper', spriteManager.generateALTTPCharacterSprite('npc', TILE_SIZE, TILE_SIZE));
+    this.characterSprites.set('enemy_basic', spriteManager.generateALTTPCharacterSprite('enemy', TILE_SIZE, TILE_SIZE));
   }
 
   generateWorld(): number[][] {
@@ -315,7 +360,10 @@ class EchoesOfAeria {
       attackTimer: 0,
       lastAttackTime: 0,
       invulnerable: false,
-      invulnerableTimer: 0
+      invulnerableTimer: 0,
+      // Enhanced animation
+      isMoving: false,
+      animationSpeed: 0.15 // seconds per frame
     };
   }
 
@@ -431,22 +479,41 @@ class EchoesOfAeria {
     const speed = this.player.speed * deltaTime;
     let newX = this.player.position.x;
     let newY = this.player.position.y;
+    let wasMoving = this.player.isMoving;
+    this.player.isMoving = false;
 
     if (this.keys['arrowup'] || this.keys['w']) {
       newY -= speed;
       this.player.direction = Direction.UP;
+      this.player.isMoving = true;
     }
     if (this.keys['arrowdown'] || this.keys['s']) {
       newY += speed;
       this.player.direction = Direction.DOWN;
+      this.player.isMoving = true;
     }
     if (this.keys['arrowleft'] || this.keys['a']) {
       newX -= speed;
       this.player.direction = Direction.LEFT;
+      this.player.isMoving = true;
     }
     if (this.keys['arrowright'] || this.keys['d']) {
       newX += speed;
       this.player.direction = Direction.RIGHT;
+      this.player.isMoving = true;
+    }
+
+    // Update animation
+    if (this.player.isMoving || wasMoving) {
+      this.player.animationTimer += deltaTime;
+      if (this.player.animationTimer >= this.player.animationSpeed) {
+        this.player.animationTimer = 0;
+        this.player.animationFrame = (this.player.animationFrame + 1) % 3; // 3 frames per direction
+      }
+    } else {
+      // Reset to standing frame when not moving
+      this.player.animationFrame = 0;
+      this.player.animationTimer = 0;
     }
 
     // Attack
@@ -544,82 +611,105 @@ class EchoesOfAeria {
   }
 
   drawTile(tileType: typeof TileType[keyof typeof TileType], x: number, y: number) {
-    switch (tileType) {
-      case TileType.GRASS:
-        this.ctx.fillStyle = '#4CAF50';
-        break;
-      case TileType.WATER:
-        this.ctx.fillStyle = '#2196F3';
-        break;
-      case TileType.FOREST:
-        this.ctx.fillStyle = '#388E3C';
-        break;
-      case TileType.MOUNTAIN:
-        this.ctx.fillStyle = '#607D8B';
-        break;
-      case TileType.DESERT:
-        this.ctx.fillStyle = '#FFC107';
-        break;
-      case TileType.SNOW:
-        this.ctx.fillStyle = '#E3F2FD';
-        break;
-      case TileType.MARSH:
-        this.ctx.fillStyle = '#689F38';
-        break;
-      case TileType.VOLCANIC:
-        this.ctx.fillStyle = '#D32F2F';
-        break;
-      case TileType.WALL:
-        this.ctx.fillStyle = '#424242';
-        break;
-      case TileType.PATH:
-        this.ctx.fillStyle = '#8D6E63';
-        break;
-      case TileType.HOUSE:
-        this.ctx.fillStyle = '#5D4037';
-        break;
-      default:
-        this.ctx.fillStyle = '#4CAF50';
+    const sprite = this.tileSprites.get(tileType);
+    if (sprite) {
+      this.ctx.drawImage(sprite, x, y);
+    } else {
+      // Fallback to grass if sprite not found
+      const grassSprite = this.tileSprites.get(TileType.GRASS);
+      if (grassSprite) {
+        this.ctx.drawImage(grassSprite, x, y);
+      }
     }
-    
-    this.ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
   }
 
   drawPlayer(x: number, y: number) {
-    // Simple player representation - green with direction indicator
-    this.ctx.fillStyle = this.player.invulnerable && Math.floor(Date.now() / 100) % 2 ? 
-      '#90EE90' : '#228B22';
-    this.ctx.fillRect(x + 2, y + 2, this.player.size.x, this.player.size.y);
-    
-    // Direction indicator
-    this.ctx.fillStyle = '#FFFFFF';
+    const sprite = this.characterSprites.get('player');
+    if (!sprite) return;
+
+    // Calculate sprite sheet position based on direction and animation frame
+    let directionIndex = 0;
     switch (this.player.direction) {
-      case Direction.UP:
-        this.ctx.fillRect(x + 6, y + 2, 2, 4);
-        break;
-      case Direction.DOWN:
-        this.ctx.fillRect(x + 6, y + 10, 2, 4);
-        break;
-      case Direction.LEFT:
-        this.ctx.fillRect(x + 2, y + 6, 4, 2);
-        break;
-      case Direction.RIGHT:
-        this.ctx.fillRect(x + 10, y + 6, 4, 2);
-        break;
+      case Direction.DOWN: directionIndex = 0; break;
+      case Direction.UP: directionIndex = 1; break;
+      case Direction.LEFT: directionIndex = 2; break;
+      case Direction.RIGHT: directionIndex = 3; break;
+    }
+
+    const sourceX = directionIndex * TILE_SIZE;
+    const sourceY = this.player.animationFrame * TILE_SIZE;
+
+    // Apply invulnerability flashing effect
+    if (this.player.invulnerable && Math.floor(Date.now() / 100) % 2) {
+      this.ctx.globalAlpha = 0.5;
+    }
+
+    this.ctx.drawImage(
+      sprite,
+      sourceX, sourceY, TILE_SIZE, TILE_SIZE, // Source
+      x, y, TILE_SIZE, TILE_SIZE // Destination
+    );
+
+    // Reset alpha
+    this.ctx.globalAlpha = 1.0;
+
+    // Draw attack effect
+    if (this.player.attacking) {
+      this.drawAttackEffect(x, y);
     }
   }
 
-  drawNPC(npc: NPC, x: number, y: number) {
-    // Different colors for different NPCs
-    switch (npc.name) {
-      case 'Keeper Elowen':
-        this.ctx.fillStyle = '#9C27B0'; // Purple for keeper
-        break;
-      default:
-        this.ctx.fillStyle = '#FF9800'; // Orange for generic NPCs
-    }
+  drawAttackEffect(x: number, y: number) {
+    // Simple sword slash effect
+    this.ctx.strokeStyle = '#FFD700'; // Gold color
+    this.ctx.lineWidth = 2;
+    this.ctx.globalAlpha = 0.7;
     
-    this.ctx.fillRect(x + 2, y + 2, npc.size.x, npc.size.y);
+    const centerX = x + TILE_SIZE / 2;
+    const centerY = y + TILE_SIZE / 2;
+    const radius = 12;
+    
+    this.ctx.beginPath();
+    switch (this.player.direction) {
+      case Direction.UP:
+        this.ctx.arc(centerX, centerY - 4, radius, Math.PI * 0.8, Math.PI * 0.2);
+        break;
+      case Direction.DOWN:
+        this.ctx.arc(centerX, centerY + 4, radius, Math.PI * 1.8, Math.PI * 1.2);
+        break;
+      case Direction.LEFT:
+        this.ctx.arc(centerX - 4, centerY, radius, Math.PI * 0.3, Math.PI * 1.7);
+        break;
+      case Direction.RIGHT:
+        this.ctx.arc(centerX + 4, centerY, radius, Math.PI * 1.3, Math.PI * 0.7);
+        break;
+    }
+    this.ctx.stroke();
+    
+    this.ctx.globalAlpha = 1.0;
+  }
+
+  drawNPC(npc: NPC, x: number, y: number) {
+    const sprite = this.characterSprites.get('npc_keeper');
+    if (!sprite) return;
+
+    // Calculate sprite direction (NPCs face down by default, could be enhanced)
+    let directionIndex = 0; // Down
+    switch (npc.direction) {
+      case Direction.DOWN: directionIndex = 0; break;
+      case Direction.UP: directionIndex = 1; break;
+      case Direction.LEFT: directionIndex = 2; break;
+      case Direction.RIGHT: directionIndex = 3; break;
+    }
+
+    const sourceX = directionIndex * TILE_SIZE;
+    const sourceY = 0; // NPCs use frame 0 (standing)
+
+    this.ctx.drawImage(
+      sprite,
+      sourceX, sourceY, TILE_SIZE, TILE_SIZE, // Source
+      x, y, TILE_SIZE, TILE_SIZE // Destination
+    );
     
     // Interaction indicator
     const distance = Math.hypot(
@@ -628,8 +718,16 @@ class EchoesOfAeria {
     );
     
     if (distance < 24) {
+      // Draw exclamation mark
       this.ctx.fillStyle = '#FFFFFF';
-      this.ctx.fillRect(x + 6, y - 4, 4, 2);
+      this.ctx.fillRect(x + 7, y - 6, 2, 4);
+      this.ctx.fillRect(x + 7, y - 1, 2, 1);
+      
+      // Add outline for visibility
+      this.ctx.strokeStyle = '#000000';
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeRect(x + 7, y - 6, 2, 4);
+      this.ctx.strokeRect(x + 7, y - 1, 2, 1);
     }
   }
 

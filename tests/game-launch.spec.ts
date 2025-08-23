@@ -8,9 +8,13 @@ test.describe('Game Launch', () => {
     // Check that the page title is correct
     await expect(page).toHaveTitle(/Echoes of Aeria/);
 
-    // Wait for the game canvas to be present
+    // Wait for the game to load - check for React app container
+    const app = page.locator('#app');
+    await expect(app).toBeVisible();
+    
+    // Wait for game canvas to be created by Phaser
     const canvas = page.locator('canvas');
-    await expect(canvas).toBeVisible();
+    await expect(canvas).toBeVisible({ timeout: 10000 });
 
     // Check that no console errors occurred during load
     const consoleErrors: string[] = [];

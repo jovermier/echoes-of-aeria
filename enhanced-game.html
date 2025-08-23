@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Echoes of Aeria - Enhanced</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #1a1a1a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: monospace;
+      }
+      
+      #app {
+        text-align: center;
+      }
+      
+      h1 {
+        color: #4caf50;
+        font-size: 24px;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      }
+      
+      canvas {
+        border: 2px solid #333;
+        image-rendering: pixelated;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: crisp-edges;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      }
+      
+      #hudCanvas {
+        position: absolute;
+        pointer-events: none;
+      }
+      
+      .controls {
+        color: #888;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      
+      .controls span {
+        margin: 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <h1>🗡️ Echoes of Aeria - Enhanced Edition 🗡️</h1>
+      <canvas id="gameCanvas"></canvas>
+      <div class="controls">
+        <span>⬆️⬇️⬅️➡️ Move</span>
+        <span>SPACE Attack</span>
+        <span>I Inventory</span>
+        <span>ESC Pause</span>
+      </div>
+    </div>
+    <script type="module" src="/src/echoes-enhanced.ts"></script>
+  </body>
+</html>

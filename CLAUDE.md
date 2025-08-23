@@ -237,19 +237,19 @@ const REALM_TRANSFORMATIONS = {
 
 ```bash
 # Development server
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
+pnpm build
 
 # Preview production build
-npm run preview
+pnpm preview
 
 # Type checking
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 
 # Linting (when configured)
-npm run lint
+pnpm lint
 ```
 
 ### Performance Optimization

@@ -225,6 +225,110 @@ export function applyAudioPreset(preset: keyof typeof AUDIO_PRESETS): void {
 }
 
 /**
+ * Audio utilities for graceful audio handling
+ * Provides fallbacks when audio files are missing
+ */
+export class AudioUtils {
+  static async checkAudioFileExists(url: string): Promise<boolean> {
+    try {
+      // First check if it's a generated audio file
+      const filename = url.split('/').pop() || '';
+      const category = url.includes('/music/') ? 'music' : 'sfx';
+      
+      // Check generated files first
+      if ((window as any).generatedAudioFiles) {
+        const audioFiles = (window as any).generatedAudioFiles;
+        if (audioFiles[category] && audioFiles[category][filename]) {
+          console.log(`🎵 Using generated audio: ${category}/${filename}`);
+          return true;
+        }
+      }
+      
+      // Fallback to network check
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async checkMultipleAudioFiles(urls: string[]): Promise<boolean> {
+    const checks = await Promise.allSettled(
+      urls.map(url => this.checkAudioFileExists(url))
+    );
+    
+    return checks.some(result => 
+      result.status === 'fulfilled' && result.value === true
+    );
+  }
+
+  static createTestTone(
+    frequency: number = 440, 
+    duration: number = 0.3, 
+    volume: number = 0.05
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        
+        oscillator.onended = () => resolve();
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  static async initializeAudioContext(): Promise<AudioContext | null> {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        console.warn('Web Audio API not supported in this browser');
+        return null;
+      }
+
+      const audioContext = new AudioContextClass();
+      
+      // Handle suspended audio context (required by modern browsers)
+      if (audioContext.state === 'suspended') {
+        console.log('Audio context suspended - will activate on user interaction');
+      }
+      
+      return audioContext;
+    } catch (error) {
+      console.warn('Failed to initialize audio context:', error);
+      return null;
+    }
+  }
+
+  static getAudioRealmTones() {
+    return {
+      dayrealm: {
+        frequency: 440, // A4 - bright tone
+        duration: 0.15,
+        volume: 0.03
+      },
+      eclipse: {
+        frequency: 220, // A3 - deeper tone  
+        duration: 0.25,
+        volume: 0.04
+      }
+    };
+  }
+}
+
+/**
  * Initialize audio system with SNES-optimized settings
  */
 export async function initializeAudio(): Promise<void> {

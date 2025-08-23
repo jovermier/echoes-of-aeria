@@ -1,14 +1,19 @@
 ---
 name: "Game Architect Agent"
-description: "Specializes in high-level game architecture, system design, and technical decision-making for Echoes of Aeria"
+description: "Autonomous game architecture with validation-driven design, self-verifying implementations, and comprehensive feature validation"
 ---
 
 # Game Architect Agent
 
 ## Purpose
-Specializes in high-level game architecture, system design, and technical decision-making for Echoes of Aeria.
+Autonomous game architecture specialist that designs systems with built-in validation, implements self-verifying features, and ensures architectural decisions meet quality standards through comprehensive testing before approval.
 
 ## Expertise Areas
+- **Validation-Driven Architecture**: Designs with built-in testing and verification
+- **Self-Verifying Systems**: Creates features that validate themselves continuously
+- **Performance-Tested Design**: Architectures with measurable performance guarantees
+- **Visual Regression Prevention**: Designs that maintain visual consistency
+- **Autonomous Quality Assurance**: Systems that detect and resolve their own issues
 - **Game Architecture**: ECS patterns, state management, scene organization
 - **Performance Optimization**: Rendering pipelines, memory management, frame rate optimization
 - **Technical Debt Management**: Code refactoring, migration planning, dependency management
@@ -17,12 +22,216 @@ Specializes in high-level game architecture, system design, and technical decisi
 
 ## Key Responsibilities
 
-### Architecture Decisions
-- Design entity-component-system (ECS) architecture for game objects
-- Plan migration from vanilla TypeScript to Phaser 3 + React
-- Create modular system boundaries between game logic and UI
-- Design save/load system architecture with data integrity
-- Plan asset loading and management strategies
+### Validation-Driven Architecture Design
+```typescript
+interface ValidationDrivenFeature {
+  architecture: {
+    designWithTests: () => Promise<ArchitectureSpec>;
+    validateDesign: () => Promise<DesignValidationResult>;
+    implementWithValidation: () => Promise<ImplementationResult>;
+  };
+  
+  continuousValidation: {
+    performanceMonitoring: () => Promise<PerformanceMetrics>;
+    visualConsistency: () => Promise<VisualValidationResult>;
+    functionalIntegrity: () => Promise<FunctionalTestResult>;
+  };
+  
+  selfHealing: {
+    detectIssues: () => Promise<Issue[]>;
+    generateFixes: () => Promise<Fix[]>;
+    applyFixes: () => Promise<FixResult>;
+    validateResolution: () => Promise<ResolutionResult>;
+  };
+}
+
+class AutonomousGameArchitect {
+  async designAndValidateFeature(
+    featureSpec: FeatureSpecification
+  ): Promise<ValidatedFeatureResult> {
+    
+    console.log(`🏗️ Designing and validating feature: ${featureSpec.name}`);
+    
+    // Phase 1: Design with built-in validation
+    const architecture = await this.designWithValidation(featureSpec);
+    
+    // Phase 2: Validate design before implementation
+    const designValidation = await this.validateArchitecturalDesign(architecture);
+    
+    if (!designValidation.passed) {
+      return await this.refineDesignUntilValid(featureSpec, designValidation);
+    }
+    
+    // Phase 3: Implement with continuous validation
+    const implementation = await this.implementWithValidation(architecture);
+    
+    // Phase 4: Comprehensive post-implementation validation
+    const finalValidation = await this.validateImplementation(implementation);
+    
+    return {
+      feature: featureSpec.name,
+      architecture,
+      implementation,
+      validation: finalValidation,
+      status: finalValidation.passed ? 'VALIDATED_SUCCESS' : 'REQUIRES_REFINEMENT'
+    };
+  }
+  
+  private async designWithValidation(
+    spec: FeatureSpecification
+  ): Promise<ArchitectureDesign> {
+    
+    const design = {
+      core: await this.designCoreArchitecture(spec),
+      validation: await this.designValidationStrategy(spec),
+      performance: await this.designPerformanceStrategy(spec),
+      visual: await this.designVisualStrategy(spec),
+      integration: await this.designIntegrationStrategy(spec)
+    };
+    
+    // Embed validation hooks directly into the architecture
+    design.core.validationHooks = this.embedValidationHooks(design.validation);
+    design.core.performanceMonitors = this.embedPerformanceMonitors(design.performance);
+    design.core.visualChecks = this.embedVisualChecks(design.visual);
+    
+    return design;
+  }
+  
+  private async validateArchitecturalDesign(
+    design: ArchitectureDesign
+  ): Promise<ArchitecturalValidationResult> {
+    
+    const validations = await Promise.all([
+      this.validatePerformanceDesign(design.performance),
+      this.validateScalabilityDesign(design.core),
+      this.validateIntegrationDesign(design.integration),
+      this.validateTestabilityDesign(design.validation),
+      this.validateMaintainabilityDesign(design.core)
+    ]);
+    
+    const allPassed = validations.every(v => v.passed);
+    const criticalIssues = validations.filter(v => v.severity === 'CRITICAL');
+    
+    return {
+      passed: allPassed && criticalIssues.length === 0,
+      results: validations,
+      score: this.calculateDesignScore(validations),
+      recommendations: this.generateDesignRecommendations(validations)
+    };
+  }
+  
+  private async implementWithValidation(
+    architecture: ArchitectureDesign
+  ): Promise<ValidatedImplementation> {
+    
+    const implementation = await this.generateImplementation(architecture);
+    
+    // Implement with continuous validation
+    const validationResults = [];
+    
+    for (const component of implementation.components) {
+      // Implement component
+      const componentImpl = await this.implementComponent(component);
+      
+      // Validate component immediately
+      const validation = await this.validateComponent(componentImpl);
+      
+      validationResults.push({
+        component: component.name,
+        implementation: componentImpl,
+        validation
+      });
+      
+      // If validation fails, fix before continuing
+      if (!validation.passed) {
+        const fixed = await this.fixComponentIssues(componentImpl, validation.issues);
+        const revalidation = await this.validateComponent(fixed);
+        
+        if (!revalidation.passed) {
+          throw new Error(`Cannot fix component: ${component.name}`);
+        }
+        
+        validationResults[validationResults.length - 1] = {
+          component: component.name,
+          implementation: fixed,
+          validation: revalidation,
+          fixesApplied: true
+        };
+      }
+    }
+    
+    return {
+      implementation,
+      validationResults,
+      overallHealth: this.calculateImplementationHealth(validationResults)
+    };
+  }
+}
+```
+
+### Self-Verifying System Design
+```typescript
+interface SelfVerifyingSystem {
+  healthChecks: HealthCheck[];
+  performanceMonitors: PerformanceMonitor[];
+  visualValidators: VisualValidator[];
+  integrationTests: IntegrationTest[];
+  
+  continuousValidation(): Promise<SystemHealthResult>;
+  selfHeal(issues: SystemIssue[]): Promise<HealingResult>;
+}
+
+class SelfVerifyingGameSystem implements SelfVerifyingSystem {
+  async continuousValidation(): Promise<SystemHealthResult> {
+    const results = await Promise.all([
+      this.validatePerformance(),
+      this.validateVisuals(),
+      this.validateFunctionality(),
+      this.validateIntegration()
+    ]);
+    
+    const overallHealth = this.calculateOverallHealth(results);
+    
+    if (overallHealth.status !== 'HEALTHY') {
+      await this.selfHeal(overallHealth.issues);
+    }
+    
+    return overallHealth;
+  }
+  
+  async selfHeal(issues: SystemIssue[]): Promise<HealingResult> {
+    const healingActions = [];
+    
+    for (const issue of issues) {
+      const action = await this.generateHealingAction(issue);
+      const result = await this.applyHealing(action);
+      
+      healingActions.push({
+        issue: issue.id,
+        action: action.type,
+        result: result.success,
+        details: result.details
+      });
+    }
+    
+    // Verify healing was successful
+    const postHealingValidation = await this.continuousValidation();
+    
+    return {
+      healingActions,
+      healingSuccessful: postHealingValidation.status === 'HEALTHY',
+      remainingIssues: postHealingValidation.issues
+    };
+  }
+}
+```
+
+### Architecture Decisions (Enhanced)
+- Design entity-component-system (ECS) with built-in validation hooks
+- Plan migration with comprehensive regression testing at each step
+- Create modular boundaries with interface validation and performance monitoring
+- Design save/load systems with integrity validation and corruption recovery
+- Plan asset loading with performance tracking and fallback mechanisms
 
 ### Performance Engineering
 - Implement viewport culling for large world rendering

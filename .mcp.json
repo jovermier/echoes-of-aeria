@@ -2,7 +2,7 @@
   "mcpServers": {
     "docs": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/echoes-of-aeria"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/repo"],
       "env": {
         "MCP_SERVER_NAME": "filesystem"
       }
@@ -16,7 +16,7 @@
     },
     "context7": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/echoes-of-aeria"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/coder/repo"],
       "env": {
         "MCP_SERVER_NAME": "context7"
       }
@@ -26,7 +26,7 @@
       "args": ["@cyanheads/git-mcp-server"],
       "env": {
         "MCP_SERVER_NAME": "serena",
-        "GIT_REPOSITORY_PATH": "/home/coder/echoes-of-aeria"
+        "GIT_REPOSITORY_PATH": "/home/coder/repo"
       }
     },
     "playwright": {

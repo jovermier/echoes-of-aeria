@@ -32,3 +32,6 @@ dist-ssr
 # Coverage reports
 coverage/
 *.lcov
+
+# Env Secrets
+.env
